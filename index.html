@@ -247,7 +247,7 @@ const GK=['PA','CO','MGM','SON'], MK=['FH','MM','MS','FI'];
 const KAT={PA:'Pressluftatmer',CO:'CO-Warner',MGM:'Mehrgasmessgeräte',SON:'Sonstiges',FH:'Fluchthauben',MM:'Masken M',MS:'Masken S',FI:'Filter'};
 const KAT1={PA:'PA',CO:'CO-Warner',MGM:'Mehrgasmessgerät',SON:'Sonstiges',FH:'Fluchthaube',MM:'Maske M',MS:'Maske S',FI:'Filter'};
 const KURZ={PA:'PA',CO:'CO',MGM:'MGM',SON:'SON',FH:'FH',MM:'M',MS:'S',FI:'FI'};
-const STATUS={bereit:{l:'Einsatzbereit',c:'ok'},benutzt:{l:'Benutzt',c:'warn'},pruefung:{l:'In Prüfung',c:'info'},defekt:{l:'Defekt',c:'crit'},ausgesondert:{l:'Ausgesondert',c:'muted'},abgegeben:{l:'An Werkstatt abgegeben',c:'muted'}};
+const STATUS={bereit:{l:'Einsatzbereit',c:'ok'},benutzt:{l:'Benutzt',c:'warn'},pruefung:{l:'In Prüfung',c:'info'},defekt:{l:'Defekt',c:'crit'},ausgesondert:{l:'Ausgesondert',c:'muted'},abgegeben:{l:'An Werkstatt abgegeben',c:'muted'},fehlt:{l:'Fehlt (Inventur)',c:'crit'}};
 const FZST={'Einsatzbereit auf Wache':'ok','Nicht Einsatzbereit':'crit','Im Einsatz':'info','In der Werkstatt':'warn'};
 const ANLASS=['Einsatz','Übung','Prüffrist','Routinetausch','Sonstiges'];
 const POOL='pool', WS='werkstatt';
@@ -310,7 +310,8 @@ const ortName=id=>{const o=ortById(id);return o?o.name+(o.bnr?' '+kz(o):''):'(ge
 const orteSorted=()=>[...S.orte].sort((a,b)=>(a.pos||0)-(b.pos||0)||a.name.localeCompare(b.name));
 const fahrzeuge=()=>orteSorted().filter(o=>o.art==='fahrzeug');
 const wache=()=>orteSorted().filter(o=>o.id!==WS);
-const aktiv=()=>S.geraete.filter(g=>g.status!=='ausgesondert'&&g.status!=='abgegeben');
+const aktiv=()=>S.geraete.filter(g=>g.status!=='ausgesondert'&&g.status!=='abgegeben'&&g.status!=='fehlt');
+const vermisst=()=>S.geraete.filter(g=>g.status==='fehlt').sort(sortG);
 const sortG=(a,b)=>GK.indexOf(a.kat)-GK.indexOf(b.kat)||String(a.nr).localeCompare(String(b.nr),'de',{numeric:true});
 const geraeteAn=ort=>aktiv().filter(g=>g.ort===ort).sort(sortG);
 function bestand(ort){const m={};for(const b of S.buchungen)if(b.ort===ort){const k=b.kat+'|'+(b.faellig||'');m[k]=(m[k]||0)+b.n}
@@ -374,6 +375,7 @@ VIEWS.start=()=>{
   <section><h2>Fälligkeiten · ${fl.length}${abg?` · ${abg} abgelaufen`:''}</h2>
     ${fl.length?`<div class="list">${fl.map(x=>x.html).join('')}</div>`:`<div class="list empty">In den nächsten ${S.vorlauf} Tagen läuft nichts ab.</div>`}</section>
   ${defekt.length?`<section><h2>Defekt / in Prüfung</h2><div class="list">${defekt.map(g=>devRow(g)).join('')}</div></section>`:''}
+  ${vermisst().length?`<section><h2>Fehlt laut Inventur · ${vermisst().length}</h2><div class="list">${vermisst().map(g=>devRow(g)).join('')}</div><p class="hint" style="margin-top:6px">Wiedergefunden? Gerät antippen, Status auf „Einsatzbereit“ und den Fundort eintragen.</p></section>`:''}
   <section><h2>Letzte Tauschvorgänge</h2>${vorgangListe(S.vorgaenge.slice(0,4))}</section>`;
 };
 function warnCount(ort){return geraeteAn(ort).filter(g=>g.faellig&&tageBis(g.faellig)<=S.vorlauf).length+bestand(ort).filter(p=>p.faellig&&tageBis(p.faellig)<=S.vorlauf).length}
@@ -502,7 +504,7 @@ VIEWS.inventur=()=>`<button class="btn primary block" data-nav="inventurNeu">Inv
   <section><h2>Inventuren · ${S.inventuren.length}</h2>${S.inventuren.length?`<div class="list">${S.inventuren.map(i=>{const d=i.fehlt.length+(i.mengen||[]).filter(m=>m.ist!==m.soll).length;return`<button class="item" data-act="inventurAnsicht" data-id="${i.id}"><span class="main">
   <span class="t1">${esc(i.ortName)} ${d?`<span class="pill crit-p">${d} Abweichung${d>1?'en':''}</span>`:`<span class="pill ok-p">stimmt</span>`}</span>
   <span class="t2"><span class="mono">${fmtDT(i.datum)}</span> · ${esc(i.bearbeiter||'')}</span></span></button>`}).join('')}</div>`:`<div class="list empty">Noch keine Inventur durchgeführt.</div>`}</section>`;
-function newInv(ort){const o=ortById(ort);return{ort,ok:[],ist:Object.fromEntries(bestand(ort).map(p=>[p.k,p.n])),neu:[],extra:[],q:'',korr:true,status:o?.status||'',bearbeiter:me(),bemerkung:'',sig:''}}
+function newInv(ort){const o=ortById(ort);return{ort,ok:[],gneu:[],ist:Object.fromEntries(bestand(ort).map(p=>[p.k,p.n])),neu:[],extra:[],q:'',korr:true,status:o?.status||'',bearbeiter:me(),bemerkung:'',sig:''}}
 VIEWS.inventurNeu=()=>{
   if(!I||!ortById(I.ort))I=newInv(fahrzeuge()[0]?.id||POOL);const o=ortById(I.ort);
   return`<div class="row"><h3 class="grow">Inventur</h3><button class="btn sm" data-act="inventurAbbruch">Abbrechen</button></div>
@@ -523,7 +525,15 @@ VIEWS.inventurNeu=()=>{
   <section><h2>Geräte von anderswo</h2><div class="card pad stack">
     <input type="search" id="i-q" placeholder="Nummer eingeben …" value="${esc(I.q)}" aria-label="Weitere Geräte suchen">
     <div id="inv3"></div>
-    <label class="row hint"><input type="checkbox" id="i-korr" style="width:auto;min-height:0" ${I.korr?'checked':''}> Standort dieser Geräte auf „${esc(ortName(I.ort))}“ ändern</label>
+    <p class="hint">Markierte Geräte werden beim Abschluss auf „${esc(ortName(I.ort))}“ umgebucht.</p>
+  </div></section>
+  <section><h2>Neues Gerät vorgefunden</h2><div class="card pad stack">
+    <p class="hint">Für Geräte, die noch gar nicht in der App sind. Sie werden beim Abschluss hier angelegt.</p>
+    <div class="grid2"><label class="f">Art<select id="i-gkat">${opts(GK.map(k=>[k,KAT1[k]]),'PA')}</select></label><label class="f">Nummer<input id="i-gnr" autocomplete="off"></label>
+    <label class="f">Bezeichnung<input id="i-gbez" placeholder="nur bei Messgerät / Sonstiges" list="dl-bez2"></label><label class="f">Fällig${mmjj('i-gf','')}</label></div>
+    <datalist id="dl-bez2"><option>TITAN</option><option>X-AM</option><option>ANT</option></datalist>
+    <button class="btn sm" data-act="invGeraetNeu">Gerät hinzufügen</button><p class="err" id="i-gerr" hidden></p>
+    <div id="inv4"></div>
   </div></section>
   <section><h2>Abschluss</h2><div class="card pad stack">
     <div id="inv-sum" class="sum"></div>
@@ -541,23 +551,30 @@ function updInv(){
     return`<div class="step"><span class="grow"><b class="mono ${dueCls(p.faellig)}">${fmtM(p.faellig)}</b> <span class="hint">${p.neu?'· neu':`· Soll ${p.n}`}</span>${!p.neu&&v!==p.n?` <span class="pill ${v<p.n?'crit':'info'}-p">${v>p.n?'+':''}${v-p.n}</span>`:''}</span>
     ${p.neu?`<button class="btn sm" data-act="invNeuWeg" data-i="${p.k.slice(3)}">Entfernen</button><b class="mono sv on">${v}</b>`:`<button class="sb" data-act="ist" data-k="${p.k}" data-d="-1" ${v<=0?'disabled':''} aria-label="weniger">−</button><b class="mono sv">${v}</b><button class="sb" data-act="ist" data-k="${p.k}" data-d="1" aria-label="mehr">+</button>`}</div>`}).join('')}`}).join(''):'<p class="hint">Laut Bestand nichts vorhanden.</p>';
   const q=I.q.trim().toLowerCase();
-  const others=aktiv().filter(g=>g.ort!==I.ort&&(I.extra.includes(g.id)||(q&&devText(g).toLowerCase().includes(q)))).sort(sortG).slice(0,30);
+  const others=[...aktiv(),...vermisst()].filter(g=>g.ort!==I.ort&&(I.extra.includes(g.id)||(q&&devText(g).toLowerCase().includes(q)))).sort(sortG).slice(0,30);
   $('#inv3').innerHTML=others.length?`<div class="chips">${others.map(g=>`<button class="chip ${I.extra.includes(g.id)?'on':''}" data-act="invExtra" data-id="${g.id}">${esc(devLabel(g))}<span class="t">${esc(ortName(g.ort))}</span></button>`).join('')}</div>`:'<p class="hint">Nummer eingeben, um ein Gerät hinzuzufügen, das laut App woanders sein sollte.</p>';
+  I.gneu=I.gneu||[];$('#inv4').innerHTML=I.gneu.length?`<div class="chips">${I.gneu.map((g,i)=>`<button class="chip on" data-act="invGeraetWeg" data-i="${i}" title="Entfernen">${esc(devLabel(g))}<span class="t">${fmtM(g.faellig)} ×</span></button>`).join('')}</div>`:'';
   const fehl=soll.filter(g=>!I.ok.includes(g.id)).length,abw=best.filter(p=>(I.ist[p.k]??p.n)!==p.n).length+I.neu.length;
-  $('#inv-sum').innerHTML=`<span class="pill ok-p">${I.ok.length} Geräte da</span><span class="pill ${fehl?'crit-p':'muted-p'}">${fehl} fehlen</span><span class="pill ${abw?'warn-p':'muted-p'}">${abw} Mengen-Abweichungen</span>`;
+  $('#inv-sum').innerHTML=`<span class="pill ok-p">${I.ok.length} Geräte da</span><span class="pill ${fehl?'crit-p':'muted-p'}">${fehl} fehlen</span><span class="pill ${abw?'warn-p':'muted-p'}">${abw} Mengen-Abweichungen</span>${I.extra.length+I.gneu.length?`<span class="pill info-p">${I.extra.length+I.gneu.length} Geräte neu hier</span>`:''}<p class="hint" style="width:100%;margin-top:4px">Beim Abschluss wird der gezählte Bestand für ${esc(ortName(I.ort))} übernommen.</p>`;
 }
 function initInventur(){updInv();sigPad=setupSig($('#sig'),I.sig,d=>I.sig=d)}
 function inventurSpeichern(){
-  I.extra=I.extra.filter(byId);const id=uid(),o=ortById(I.ort),soll=geraeteAn(I.ort),best=bestand(I.ort);
+  I.extra=I.extra.filter(byId);I.gneu=I.gneu||[];const id=uid(),o=ortById(I.ort),soll=geraeteAn(I.ort),best=bestand(I.ort),on=ortName(I.ort);
   const it=g=>({kat:g.kat,text:devText(g),faellig:g.faellig,n:1});
   const mengen=[...best.map(p=>({kat:p.kat,text:fmtM(p.faellig),faellig:p.faellig,soll:p.n,ist:I.ist[p.k]??p.n})),...I.neu.map(p=>({kat:p.kat,text:fmtM(p.faellig),faellig:p.faellig,soll:0,ist:p.n}))];
-  const inv={id,u:Date.now(),von:me(),datum:isoDT(),ort:I.ort,ortName:ortName(I.ort),status:I.status,
-    ok:soll.filter(g=>I.ok.includes(g.id)).map(it),fehlt:soll.filter(g=>!I.ok.includes(g.id)).map(it),extra:I.extra.map(i=>({...it(byId(i)),von:ortName(byId(i).ort)})),mengen,bearbeiter:I.bearbeiter,bemerkung:I.bemerkung,sig:I.sig};
-  soll.forEach(g=>hist(g,`Inventur ${inv.ortName}: ${I.ok.includes(g.id)?'vorhanden':'FEHLT'}`));
-  I.extra.forEach(i=>{const g=byId(i);hist(g,`Inventur: vorgefunden auf ${inv.ortName} (laut App ${ortName(g.ort)})`);if(I.korr)g.ort=I.ort});
+  const fehlt=soll.filter(g=>!I.ok.includes(g.id)),abw=mengen.filter(m=>m.ist!==m.soll);
+  const teile=[fehlt.length&&`${fehlt.length} Gerät(e) als fehlend ausbuchen`,I.extra.length&&`${I.extra.length} Gerät(e) hierher umbuchen`,I.gneu.length&&`${I.gneu.length} Gerät(e) neu anlegen`,abw.length&&`${abw.length} Mengen-Position(en) korrigieren`,o.art==='fahrzeug'&&I.status!==o.status&&`Fahrzeugstatus auf „${I.status||'offen'}“ setzen`].filter(Boolean);
+  if(teile.length&&!confirm(`Inventur abschließen und Bestand für ${on} übernehmen?\n\n• ${teile.join('\n• ')}`))return;
+  const inv={id,u:Date.now(),von:me(),datum:isoDT(),ort:I.ort,ortName:on,status:I.status,
+    ok:soll.filter(g=>I.ok.includes(g.id)).map(it),fehlt:fehlt.map(it),extra:I.extra.map(i=>({...it(byId(i)),von:ortName(byId(i).ort)})),
+    neuGeraete:I.gneu.map(g=>({kat:g.kat,text:devText(g),faellig:g.faellig,n:1})),mengen,bearbeiter:I.bearbeiter,bemerkung:I.bemerkung,sig:I.sig};
+  soll.filter(g=>I.ok.includes(g.id)).forEach(g=>hist(g,`Inventur ${on}: vorhanden`));
+  fehlt.forEach(g=>{g.status='fehlt';hist(g,`Inventur ${on}: nicht vorgefunden, als fehlend ausgebucht`)});
+  I.extra.forEach(i=>{const g=byId(i);hist(g,`Inventur: vorgefunden auf ${on} (laut App ${ortName(g.ort)}), umgebucht`);g.ort=I.ort;if(g.status==='fehlt')g.status='bereit'});
+  I.gneu.forEach(d=>{const g={id:uid(),kat:d.kat,bez:d.bez,nr:d.nr,faellig:d.faellig,ort:I.ort,status:'bereit',notiz:'',historie:[]};hist(g,`Bei Inventur auf ${on} vorgefunden und angelegt`);S.geraete.push(g)});
   mengen.forEach(m=>buch(I.ort,m.kat,m.faellig,m.ist-m.soll,'Inventur-Korrektur',id));
   if(o.art==='fahrzeug'&&I.status!==o.status){o.status=I.status;o.u=Date.now()}
-  S.inventuren.unshift(inv);save();I=null;toast('Inventur gespeichert');go('inventur');openInventur(id);
+  S.inventuren.unshift(inv);save();I=null;toast('Inventur gespeichert, Bestand übernommen');go('inventur');openInventur(id);
 }
 
 /* ---------- Mehr: Export, Daten, Einstellungen ---------- */
@@ -700,6 +717,7 @@ function printInventur(i){const abw=(i.mengen||[]).filter(m=>m.ist!==m.soll);pri
   <h2>Fehlende Geräte</h2>${itemTable(i.fehlt)}
   <h2>Fluchthauben, Masken, Filter</h2>${(i.mengen||[]).length?`<table class="lt"><tr><th>Art</th><th>Fälligkeit</th><th>Soll</th><th>Ist</th><th>Differenz</th></tr>${i.mengen.map(m=>`<tr><td>${KAT1[m.kat]}</td><td>${esc(m.text)}</td><td>${m.soll}</td><td>${m.ist}</td><td>${m.ist-m.soll?(m.ist>m.soll?'+':'')+(m.ist-m.soll):''}</td></tr>`).join('')}</table>`:'<p>– keine –</p>'}
   ${(i.extra||[]).length?`<h2>Zusätzlich vorgefunden</h2><table class="lt"><tr><th>Art</th><th>Nummer</th><th>Laut App bei</th></tr>${i.extra.map(x=>`<tr><td>${KAT1[x.kat]||x.kat}</td><td>${esc(x.text)}</td><td>${esc(x.von||'')}</td></tr>`).join('')}</table>`:''}
+  ${(i.neuGeraete||[]).length?`<h2>Neu vorgefunden und angelegt</h2>${itemTable(i.neuGeraete)}`:''}
   <h2>Vorhandene Geräte</h2>${itemTable(i.ok)}
   ${i.bemerkung?`<h2>Bemerkung</h2><p>${esc(i.bemerkung)}</p>`:''}
   <div class="sigbox"><div>${i.sig?`<img src="${i.sig}" alt="Unterschrift">`:''}${esc(i.bearbeiter)||'&nbsp;'}<br>Geprüft durch</div><div>&nbsp;<br>Gegengezeichnet</div></div>`)}
@@ -812,6 +830,7 @@ function openInventur(id){const i=S.inventuren.find(x=>x.id===id);const abw=(i.m
   <p class="hint"><span class="mono">${fmtDT(i.datum)}</span> · ${esc(i.bearbeiter)||'–'}${i.status?' · '+esc(i.status):''}</p>
   <section><h2>Fehlende Geräte · ${i.fehlt.length}</h2>${chips(i.fehlt,'miss')}</section>
   <section><h2>Mengen-Abweichungen · ${abw.length}</h2>${abw.length?`<div class="chips">${abw.map(m=>`<span class="chip"><span class="t">${KURZ[m.kat]}</span>${esc(m.text)} Soll ${m.soll} / Ist ${m.ist}</span>`).join('')}</div>`:'<p class="hint">– keine –</p>'}</section>
+  ${(i.neuGeraete||[]).length?`<section><h2>Neu angelegt · ${i.neuGeraete.length}</h2>${chips(i.neuGeraete)}</section>`:''}
   <section><h2>Vorhandene Geräte · ${i.ok.length}</h2>${chips(i.ok)}</section>
   ${i.bemerkung?`<section><h2>Bemerkung</h2><p style="margin:0">${esc(i.bemerkung)}</p></section>`:''}
   <div class="actions"><button class="btn primary" data-act="printInventur" data-id="${i.id}">Protokoll als PDF</button><button class="btn danger" data-act="inventurLoeschen" data-id="${i.id}">Eintrag löschen</button></div>`)}
@@ -985,7 +1004,7 @@ function pwSheet(id,self){const u=S.users.find(x=>x.id===id);
 /* ================= Ereignisse ================= */
 // Alles, was etwas ändert oder einträgt, geht nur mit Anmeldung (sobald Benutzer angelegt sind)
 const NUR_ANGEMELDET=new Set(['neuGeraet','ortNeu','ortEdit','ortOk','ortLoeschen','buchen','buchenOk','geprueft','gepruefOk','geraetLoeschen','tauschFuer','inventurFuer',
-  'pick1','pick2','st','tauschSpeichern','tauschVerwerfen','vorgangLoeschen','inventurLoeschen','invToggle','invExtra','invAlle','ist','invNeu','invNeuWeg','inventurSpeichern',
+  'pick1','pick2','st','tauschSpeichern','tauschVerwerfen','vorgangLoeschen','inventurLoeschen','invToggle','invExtra','invAlle','ist','invNeu','invNeuWeg','invGeraetNeu','invGeraetWeg','inventurSpeichern',
   'backup','pwSelbst','pwReset','pwOk','userNeu','userAktiv','trennen','beispielWeg','beispielLaden','allesWeg','sigClear']);
 document.addEventListener('click',e=>{
   const nav=e.target.closest('[data-nav]');if(nav){if(['tauschNeu','inventurNeu'].includes(nav.dataset.nav)&&!canEdit())return needAuth();closeSheet();go(nav.dataset.nav);return}
@@ -1027,6 +1046,11 @@ document.addEventListener('click',e=>{
       const kat=$('#i-nkat').value,ex=bestand(I.ort).find(p=>p.k===kat+'|'+f);
       if(ex){I.ist[ex.k]=(I.ist[ex.k]??ex.n)+n}else I.neu.push({kat,faellig:f,n});$('#i-nf').value='';$('#i-nn').value=1;updInv()},
     invNeuWeg:()=>{I.neu.splice(+b.dataset.i,1);updInv()},
+    invGeraetNeu:()=>{const er=$('#i-gerr'),kat=$('#i-gkat').value,nr=$('#i-gnr').value.trim(),f=parseM($('#i-gf').value),bez=kat==='PA'||kat==='CO'?'':$('#i-gbez').value.trim();
+      const e=t=>{er.hidden=false;er.textContent=t};if(!nr)return e('Bitte die Nummer eintragen.');if(f===null)return e('Fälligkeit bitte als MM/JJ, z. B. 11/26.');
+      const da=[...aktiv(),...vermisst()].find(x=>x.kat===kat&&String(x.nr).toLowerCase()===nr.toLowerCase());if(da)return e(`${KAT1[kat]} Nr. ${nr} gibt es schon (${ortName(da.ort)}). Bitte oben unter „Geräte von anderswo“ suchen.`);
+      I.gneu.push({kat,nr,bez,faellig:f});er.hidden=true;$('#i-gnr').value='';$('#i-gf').value='';$('#i-gbez').value='';updInv()},
+    invGeraetWeg:()=>{I.gneu.splice(+b.dataset.i,1);updInv()},
     inventurSpeichern, inventurAbbruch:()=>{I=null;go('inventur')},
     xlsxInventar, pdfInventar:printInventar, pdfFristen:printFristen, csvVorgaenge, backup,
     syncJetzt:()=>sync(true), verbinden,
@@ -1071,7 +1095,6 @@ document.addEventListener('change',e=>{const t=e.target;
   else if(t.id==='t-quelle'){T.quelle=t.value;T.rein={g:[],m:{}};updTausch()}
   else if(t.id==='i-ort'){I=newInv(t.value);render()}
   else if(t.id==='i-status'){I.status=t.value}
-  else if(t.id==='i-korr'){I.korr=t.checked}
   else if(t.id==='o-status'){const o=ortById(t.dataset.id);o.status=t.value;o.u=Date.now();save();toast('Status gespeichert')}
   else if(t.id==='s-feuerwehr'){S.feuerwehr=t.value.trim();shared();save();render();toast('Gespeichert')}
   else if(t.id==='s-vorlauf'){S.vorlauf=Math.max(1,+t.value||30);shared();save();toast('Gespeichert')}
