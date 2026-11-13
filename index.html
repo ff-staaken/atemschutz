@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#a3231b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Atemschutz">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Atemschutz-Logbuch</title>
+<style>
+/* Layout: App-Shell – Kopfzeile, scrollender Inhalt, untere Navigation (Daumenzone) */
+:root{
+  --bg:#f5f3f2; --surface:#ffffff; --surface-2:#efebe9; --line:#ddd6d3;
+  --fg:#1f1a19; --fg-2:#6b605d; --accent:#a3231b; --accent-fg:#ffffff; --accent-soft:#f6e3e1;
+  --ok:#1f7a3f; --ok-soft:#e1f2e6; --warn:#a15c00; --warn-soft:#fbecd4;
+  --crit:#b3261e; --crit-soft:#f9dedb; --info:#1d5f9e; --info-soft:#dfeaf6;
+  --font:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --r:12px; color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#141111; --surface:#1e1a19; --surface-2:#2a2423; --line:#3a3331;
+  --fg:#f1eceb; --fg-2:#aa9f9c; --accent:#e5534a; --accent-fg:#1a0705; --accent-soft:#3d1f1c;
+  --ok:#5fc882; --ok-soft:#183324; --warn:#f0a94a; --warn-soft:#3a2a12;
+  --crit:#f07067; --crit-soft:#3f1c19; --info:#7db4ec; --info-soft:#172b40; color-scheme:dark;
+}}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--fg);font:15px/1.45 var(--font);-webkit-text-size-adjust:100%}
+[hidden]{display:none!important}
+button,input,select,textarea{font:inherit;color:inherit}
+.app{display:flex;flex-direction:column;min-height:100%}
+header.top{position:sticky;top:0;z-index:5;background:var(--accent);color:var(--accent-fg);
+  padding:calc(env(safe-area-inset-top,0px) + 10px) max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));
+  display:flex;align-items:center;gap:12px}
+header.top h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.01em;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header.top .sub{font-size:12px;opacity:.85;font-weight:500}
+main{flex:1;padding:16px max(16px,env(safe-area-inset-right,0px)) calc(88px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));max-width:760px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);
+  display:grid;grid-template-columns:repeat(5,1fr);padding:4px max(4px,env(safe-area-inset-right,0px)) calc(4px + env(safe-area-inset-bottom,0px)) max(4px,env(safe-area-inset-left,0px))}
+nav.tabs button{background:none;border:0;padding:6px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--fg-2);border-radius:8px;cursor:pointer}
+nav.tabs button svg{width:24px;height:24px}
+nav.tabs button.on{color:var(--accent);font-weight:600}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--fg-2);margin:0 0 8px;font-weight:650}
+h3{font-size:16px;margin:0}
+section{display:flex;flex-direction:column}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.pad{padding:14px}
+.stack{display:flex;flex-direction:column;gap:10px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.grow{flex:1;min-width:0}
+.hint{color:var(--fg-2);font-size:13px;margin:0}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(98px,1fr));gap:8px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;text-align:left;cursor:pointer}
+.stat b{display:block;font-size:24px;font-variant-numeric:tabular-nums;line-height:1.1}
+.stat span{font-size:12px;color:var(--fg-2)}
+.stat.ok b{color:var(--ok)} .stat.warn b{color:var(--warn)} .stat.info b{color:var(--info)} .stat.crit b{color:var(--crit)}
+.list{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.item{display:flex;gap:12px;align-items:center;padding:11px 14px;border-top:1px solid var(--line);width:100%;background:none;border-left:0;border-right:0;border-bottom:0;text-align:left;cursor:pointer}
+.item:first-child{border-top:0}
+.item .main{flex:1;min-width:0}
+.item .t1{font-weight:600;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.item .t2{font-size:13px;color:var(--fg-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.typ{font-size:11px;font-weight:700;letter-spacing:.04em;padding:2px 6px;border-radius:5px;background:var(--surface-2);color:var(--fg-2);font-family:var(--mono)}
+.pill{font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.ok-p{background:var(--ok-soft);color:var(--ok)} .warn-p{background:var(--warn-soft);color:var(--warn)}
+.info-p{background:var(--info-soft);color:var(--info)} .crit-p{background:var(--crit-soft);color:var(--crit)}
+.muted-p{background:var(--surface-2);color:var(--fg-2)}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 14px;font-weight:600;cursor:pointer;display:inline-flex;gap:6px;align-items:center;justify-content:center;min-height:44px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn.danger{color:var(--crit);border-color:var(--crit-soft)}
+.btn.sm{min-height:34px;padding:6px 10px;font-size:13px}
+.btn.block{width:100%}
+.btn:focus-visible,.chip:focus-visible,.item:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,nav.tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--fg-2);font-weight:600;min-width:0}
+input,select,textarea{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:44px;width:100%;color:var(--fg);font-weight:400}
+textarea{min-height:70px;resize:vertical}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:420px){.grid2{grid-template-columns:1fr}}
+.filters{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.fchip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:13px;white-space:nowrap;cursor:pointer}
+.fchip.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 10px;font-family:var(--mono);font-size:14px;cursor:pointer;display:inline-flex;gap:6px;align-items:center;min-height:38px}
+.chip .t{font-size:10px;font-weight:700;color:var(--fg-2)}
+.chip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.chip.on .t{color:var(--accent-fg);opacity:.8}
+.chip.miss{border-style:dashed;color:var(--crit)}
+.group-l{font-size:12px;color:var(--fg-2);font-weight:600;margin:8px 0 4px}
+.banner{border-radius:var(--r);padding:12px 14px;font-size:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.banner.warn{background:var(--warn-soft);color:var(--warn)}
+.banner.info{background:var(--info-soft);color:var(--info)}
+.banner .grow{min-width:180px}
+.sig{border:1px dashed var(--line);border-radius:10px;background:var(--surface);touch-action:none;width:100%;height:140px;display:block}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--bg);width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:16px 16px 0 0;
+  padding:16px max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:14px}
+.sheet-h{display:flex;align-items:center;gap:10px}
+.sheet-h h3{flex:1}
+.x{background:var(--surface-2);border:0;border-radius:999px;width:36px;height:36px;font-size:20px;cursor:pointer}
+.hist{font-size:13px;display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.hist li{display:flex;gap:10px}
+.hist .d{color:var(--fg-2);font-family:var(--mono);white-space:nowrap;font-size:12px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:10px;z-index:30;font-weight:600;font-size:14px;max-width:90vw}
+.empty{padding:20px;text-align:center;color:var(--fg-2);font-size:14px}
+.sum{display:flex;gap:6px;flex-wrap:wrap;font-size:13px}
+#print{display:none}
+@media print{
+  .app,.overlay,.toast,nav.tabs{display:none!important}
+  #print{display:block;color:#000;background:#fff;font:11pt/1.4 Arial,Helvetica,sans-serif}
+  body{background:#fff}
+  @page{size:A4;margin:16mm 14mm}
+}
+#print h1{font-size:16pt;margin:0 0 2mm}
+#print .ph{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #000;padding-bottom:2mm;margin-bottom:5mm}
+#print table{width:100%;border-collapse:collapse;margin:2mm 0 5mm;font-size:10pt}
+#print th,#print td{border:1px solid #888;padding:1.5mm 2mm;text-align:left;vertical-align:top}
+#print th{background:#eee}
+#print .kv td:first-child{width:38%;font-weight:bold;background:#f5f5f5}
+#print h2{font-size:12pt;text-transform:none;letter-spacing:0;color:#000;margin:4mm 0 1mm}
+#print .sigbox{display:flex;gap:10mm;margin-top:8mm}
+#print .sigbox div{flex:1 1 0;border-top:1px solid #000;padding-top:1mm;font-size:9pt}
+#print .sigbox img{max-height:25mm;display:block}
+#print .foot{margin-top:8mm;font-size:8pt;color:#555}
+@media (prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(30px);opacity:.6}}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <svg width="26" height="26" viewBox="0 0 64 64" aria-hidden="true"><use href="#ico-mask"/></svg>
+    <h1 id="title">Atemschutz-Logbuch</h1>
+    <span class="sub" id="subtitle"></span>
+  </header>
+  <main id="main"></main>
+  <nav class="tabs" id="tabs">
+    <button data-nav="start"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Übersicht</button>
+    <button data-nav="geraete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="2" width="8" height="20" rx="4"/><path d="M10 6h4"/></svg>Geräte</button>
+    <button data-nav="tausch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h14l-4-4M20 16H6l4 4"/></svg>Tausch</button>
+    <button data-nav="inventur"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 4h6v3H9zM6 5h-1v16h14V5h-1"/><path d="M9 13l2 2 4-4"/></svg>Inventur</button>
+    <button data-nav="mehr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"/></svg>Export</button>
+  </nav>
+</div>
+<div id="print"></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="ico-mask" viewBox="0 0 64 64"><g fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"><path d="M32 6c-12 0-20 8-20 20 0 14 8 26 20 32 12-6 20-18 20-32 0-12-8-20-20-20z"/><ellipse cx="32" cy="25" rx="12" ry="9"/><circle cx="32" cy="46" r="6"/></g></symbol>
+</svg>
+<script>
+'use strict';
+/* ---------- Grundlagen ---------- */
+const KEY='atemschutz-logbuch-v1', DRAFT='atemschutz-logbuch-draft';
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2));
+const z=n=>String(n).padStart(2,'0');
+const isoDate=(d=new Date())=>`${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`;
+const isoDT=(d=new Date())=>`${isoDate(d)}T${z(d.getHours())}:${z(d.getMinutes())}`;
+const fmtD=s=>{if(!s)return'–';const[y,m,d]=s.slice(0,10).split('-');return`${d}.${m}.${y}`};
+const fmtDT=s=>!s?'–':fmtD(s)+(s.length>10?' '+s.slice(11,16):'');
+const daysUntil=s=>{if(!s)return null;return Math.round((new Date(s+'T00:00:00')-new Date(isoDate()+'T00:00:00'))/864e5)};
+const addYears=(y)=>{const d=new Date();d.setFullYear(d.getFullYear()+y);return isoDate(d)};
+
+const TYPEN={PA:'Pressluftatmer',Maske:'Atemschutzmaske',Flasche:'Atemluftflasche'};
+const TKURZ={PA:'PA',Maske:'MA',Flasche:'FL'};
+const STATUS={
+  bereit:{l:'Einsatzbereit',c:'ok'}, benutzt:{l:'Benutzt',c:'warn'}, pruefung:{l:'In Prüfung',c:'info'},
+  defekt:{l:'Defekt',c:'crit'}, ausgesondert:{l:'Ausgesondert',c:'muted'}
+};
+const ANLASS=['Einsatz','Übung','Routinetausch','Prüffrist','Sonstiges'];
+
+/* ---------- Speicher ---------- */
+function emptyState(){return{version:1,settings:{feuerwehr:'',bearbeiter:'',werkstatt:'Atemschutzwerkstatt',vorlauf:30,lastBackup:null,beispiel:false},
+  standorte:['Atemschutzwerkstatt'],geraete:[],vorgaenge:[],inventuren:[]}}
+function sampleState(){
+  const s=emptyState(); s.settings.beispiel=true;
+  s.standorte=['Atemschutzwerkstatt','HLF 20','LF 10','DLK 23','Lager Gerätehaus'];
+  const mk=(typ,nr,standort,extra={})=>({id:uid(),typ,nr,hersteller:'',modell:'',seriennr:'',standort,status:'bereit',pruefung:'',tuev:'',volumen:'',druck:'',groesse:'',notiz:'',historie:[{d:isoDT(),t:'Angelegt (Beispiel)'}],...extra});
+  const st=['HLF 20','HLF 20','HLF 20','HLF 20','LF 10','LF 10','Atemschutzwerkstatt','Atemschutzwerkstatt'];
+  st.forEach((o,i)=>s.geraete.push(mk('PA',`PA-${z(i+1)}`,o,{hersteller:'Dräger',modell:'PSS 7000',pruefung:i===5?isoDate(new Date(Date.now()+12*864e5)):addYears(1)})));
+  st.forEach((o,i)=>s.geraete.push(mk('Maske',`M-${z(i+1)}`,o,{hersteller:'Dräger',modell:'FPS 7000',groesse:i%3?'M':'L',pruefung:addYears(2)})));
+  const fst=[...st,'Atemschutzwerkstatt','Atemschutzwerkstatt','Lager Gerätehaus','Lager Gerätehaus'];
+  fst.forEach((o,i)=>s.geraete.push(mk('Flasche',`F-${101+i}`,o,{hersteller:'Luxfer',modell:'Composite',volumen:'6,8',druck:'300',pruefung:addYears(1),tuev:i===2?isoDate(new Date(Date.now()-3*864e5)):addYears(3)})));
+  s.geraete[6].status='benutzt'; s.geraete[14].status='pruefung';
+  return s;
+}
+let S;
+function load(){try{const raw=localStorage.getItem(KEY);S=raw?JSON.parse(raw):sampleState()}catch(e){S=sampleState()}
+  S=Object.assign(emptyState(),S);S.settings=Object.assign(emptyState().settings,S.settings);}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('Speichern fehlgeschlagen – Speicher voll oder blockiert.')}}
+load();
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+
+/* ---------- Hilfen ---------- */
+const byId=id=>S.geraete.find(g=>g.id===id);
+const aktiv=()=>S.geraete.filter(g=>g.status!=='ausgesondert');
+function fristen(g){const f=[['Prüfung',g.pruefung]];if(g.typ==='Flasche')f.push(['TÜV',g.tuev]);return f.filter(x=>x[1])}
+function fristState(g){let worst=null;for(const[l,d]of fristen(g)){const n=daysUntil(d);if(worst===null||n<worst.n)worst={l,d,n}}return worst}
+function fristPill(g){const w=fristState(g);if(!w)return'';if(w.n<0)return`<span class="pill crit-p">${w.l} überfällig</span>`;
+  if(w.n<=S.settings.vorlauf)return`<span class="pill warn-p">${w.l} in ${w.n} T</span>`;return''}
+const statusPill=s=>`<span class="pill ${STATUS[s].c}-p">${STATUS[s].l}</span>`;
+const sortNr=(a,b)=>a.typ.localeCompare(b.typ)||a.nr.localeCompare(b.nr,'de',{numeric:true});
+function hist(g,t){(g.historie=g.historie||[]).unshift({d:isoDT(),t})}
+function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2400)}
+function opts(list,sel){return list.map(o=>{const[v,l]=Array.isArray(o)?o:[o,o];return`<option value="${esc(v)}"${v===sel?' selected':''}>${esc(l)}</option>`}).join('')}
+function itemRow(g,extra=''){return`<button class="item" data-act="geraet" data-id="${g.id}">
+  <span class="typ">${TKURZ[g.typ]}</span>
+  <span class="main"><span class="t1"><span class="mono">${esc(g.nr)}</span>${statusPill(g.status)}${fristPill(g)}</span>
+  <span class="t2">${esc(g.standort)}${g.modell?' · '+esc(g.hersteller+' '+g.modell):''}${g.typ==='Maske'&&g.groesse?' · Gr. '+esc(g.groesse):''}${g.typ==='Flasche'&&g.volumen?' · '+esc(g.volumen)+' l / '+esc(g.druck)+' bar':''}</span></span>${extra}</button>`}
+
+/* ---------- Navigation ---------- */
+let view='start', ui={typ:'',status:'',standort:'',q:''};
+function go(v){view=v;render();window.scrollTo(0,0)}
+function render(){
+  $$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.nav===view||(view==='tauschNeu'&&b.dataset.nav==='tausch')||(view==='inventurNeu'&&b.dataset.nav==='inventur')));
+  $('#subtitle').textContent=S.settings.feuerwehr||'';
+  $('#main').innerHTML=VIEWS[view]();
+  if(view==='tauschNeu')initTausch();
+  if(view==='inventurNeu')initInventur();
+}
+
+/* ---------- Ansichten ---------- */
+const VIEWS={};
+VIEWS.start=()=>{
+  const a=aktiv(), c=s=>a.filter(g=>g.status===s).length;
+  const faellig=a.filter(g=>{const w=fristState(g);return w&&w.n<=S.settings.vorlauf}).sort((x,y)=>fristState(x).n-fristState(y).n);
+  const wartung=a.filter(g=>['benutzt','pruefung','defekt'].includes(g.status)).sort(sortNr);
+  const lb=S.settings.lastBackup, lbDays=lb?-daysUntil(lb.slice(0,10)):null;
+  return`
+  ${S.settings.beispiel?`<div class="banner info"><span class="grow">Du siehst <b>Beispieldaten</b>. Schau dich um und lösche sie, wenn du mit deinen eigenen Geräten startest.</span><button class="btn sm" data-act="beispielWeg">Beispiele löschen</button></div>`:''}
+  ${!S.settings.beispiel&&S.geraete.length&&(lbDays===null||lbDays>14)?`<div class="banner warn"><span class="grow">${lb?`Letzte Datensicherung vor ${lbDays} Tagen.`:'Noch keine Datensicherung erstellt.'} Die Daten liegen nur auf diesem Gerät.</span><button class="btn sm" data-act="backup">Jetzt sichern</button></div>`:''}
+  <div class="actions"><button class="btn primary" data-nav="tauschNeu">Neuer Tausch</button><button class="btn" data-nav="inventurNeu">Inventur starten</button></div>
+  <section><h2>Bestand · ${a.length} Geräte</h2><div class="stats">
+    ${['bereit','benutzt','pruefung','defekt'].map(s=>`<button class="stat ${STATUS[s].c}" data-act="filterStatus" data-s="${s}"><b>${c(s)}</b><span>${STATUS[s].l}</span></button>`).join('')}
+  </div></section>
+  <section><h2>Prüffristen · nächste ${S.settings.vorlauf} Tage</h2>
+    ${faellig.length?`<div class="list">${faellig.map(g=>itemRow(g)).join('')}</div>`:`<div class="list empty">Keine Fristen fällig.</div>`}</section>
+  <section><h2>In Wartung / Prüfung</h2>
+    ${wartung.length?`<div class="list">${wartung.map(g=>`<div class="item" style="cursor:default"><span class="typ">${TKURZ[g.typ]}</span><span class="main"><span class="t1"><span class="mono">${esc(g.nr)}</span>${statusPill(g.status)}</span><span class="t2">${esc(g.standort)}</span></span>
+      <button class="btn sm" data-act="erledigt" data-id="${g.id}">${g.typ==='Flasche'?'Gefüllt ✓':'Geprüft ✓'}</button></div>`).join('')}</div>`
+      :`<div class="list empty">Alle Geräte sind einsatzbereit.</div>`}</section>
+  <section><h2>Letzte Tauschvorgänge</h2>${vorgangListe(S.vorgaenge.slice(0,4))}</section>`;
+};
+VIEWS.geraete=()=>`
+  <div class="row"><input id="q" class="grow" type="search" placeholder="Nummer, Hersteller, Standort …" value="${esc(ui.q)}" aria-label="Suche"><button class="btn primary" data-act="neuGeraet">+ Gerät</button></div>
+  <div class="filters">${[['','Alle'],['PA','Pressluftatmer'],['Maske','Masken'],['Flasche','Flaschen']].map(([v,l])=>`<button class="fchip ${ui.typ===v?'on':''}" data-act="ftyp" data-v="${v}">${l}</button>`).join('')}</div>
+  <div class="grid2">
+    <select id="fstatus" aria-label="Status"><option value="">Alle Status (ohne ausgesondert)</option>${opts(Object.entries(STATUS).map(([k,v])=>[k,v.l]),ui.status)}</select>
+    <select id="fstandort" aria-label="Standort"><option value="">Alle Standorte</option>${opts(S.standorte,ui.standort)}</select>
+  </div>
+  <div id="glist">${geraeteListe()}</div>`;
+function geraeteListe(){
+  const q=ui.q.trim().toLowerCase();
+  const l=S.geraete.filter(g=>(!ui.typ||g.typ===ui.typ)&&(ui.status?g.status===ui.status:g.status!=='ausgesondert')&&(!ui.standort||g.standort===ui.standort)
+    &&(!q||[g.nr,g.hersteller,g.modell,g.seriennr,g.standort,g.notiz].join(' ').toLowerCase().includes(q))).sort(sortNr);
+  return`<p class="hint" style="margin-bottom:6px">${l.length} Gerät${l.length===1?'':'e'}</p>`+(l.length?`<div class="list">${l.map(g=>itemRow(g)).join('')}</div>`:`<div class="list empty">Keine Geräte gefunden.</div>`);
+}
+function vorgangListe(l){
+  if(!l.length)return`<div class="list empty">Noch keine Tauschvorgänge erfasst.</div>`;
+  return`<div class="list">${l.map(v=>`<button class="item" data-act="vorgang" data-id="${v.id}"><span class="main">
+    <span class="t1">${esc(v.standort)} <span class="pill muted-p">${esc(v.anlass)}</span></span>
+    <span class="t2"><span class="mono">${fmtDT(v.datum)}</span>${v.einsatz?' · '+esc(v.einsatz):''} · ${v.zurueck.length} zurück, ${v.ausgabe.length} ausgegeben</span></span></button>`).join('')}</div>`;
+}
+VIEWS.tausch=()=>`<button class="btn primary block" data-nav="tauschNeu">Neuer Tausch</button>
+  <section><h2>Tauschvorgänge · ${S.vorgaenge.length}</h2>${vorgangListe(S.vorgaenge)}</section>`;
+
+/* ---------- Tausch erfassen ---------- */
+let T=null;
+function newDraft(){return{datum:isoDT(),anlass:'Einsatz',einsatz:'',standort:S.standorte.find(s=>s!==S.settings.werkstatt)||S.standorte[0]||'',bearbeiter:S.settings.bearbeiter,uebernommen:'',bemerkung:'',zurueck:[],ausgabe:[],q1:'',q2:'',sig:''}}
+function saveDraft(){try{localStorage.setItem(DRAFT,JSON.stringify(T))}catch(e){}}
+VIEWS.tauschNeu=()=>{
+  if(!T){try{T=JSON.parse(localStorage.getItem(DRAFT))}catch(e){}if(!T)T=newDraft()}
+  return`<div class="row"><h3 class="grow">Neuer Tausch</h3><button class="btn sm" data-act="tauschVerwerfen">Verwerfen</button></div>
+  <div class="card pad stack">
+    <div class="grid2">
+      <label class="f">Datum / Uhrzeit<input type="datetime-local" id="t-datum" value="${esc(T.datum)}"></label>
+      <label class="f">Anlass<select id="t-anlass">${opts(ANLASS,T.anlass)}</select></label>
+    </div>
+    <label class="f">Einsatz-Nr. / Stichwort<input id="t-einsatz" value="${esc(T.einsatz)}" placeholder="z. B. 2026-0412 · B3 Wohnung"></label>
+    <label class="f">Fahrzeug / Standort<select id="t-standort">${opts(S.standorte.filter(s=>s!==S.settings.werkstatt),T.standort)}</select></label>
+  </div>
+  <section><h2>Zurückgenommen – benutzte Geräte</h2><div class="card pad stack">
+    <p class="hint">Tippe die Geräte an, die vom Fahrzeug abgegeben werden. Sie gehen auf „Benutzt“ in die ${esc(S.settings.werkstatt)}.</p>
+    <input type="search" id="t-q1" placeholder="Nummer filtern …" value="${esc(T.q1)}" aria-label="Zurückgenommene filtern">
+    <div id="pick1"></div></div></section>
+  <section><h2>Ausgegeben – Ersatzgeräte</h2><div class="card pad stack">
+    <p class="hint">Einsatzbereite Geräte aus Werkstatt und Lager, die auf das Fahrzeug gehen.</p>
+    <input type="search" id="t-q2" placeholder="Nummer filtern …" value="${esc(T.q2)}" aria-label="Ersatzgeräte filtern">
+    <div id="pick2"></div></div></section>
+  <section><h2>Übergabe</h2><div class="card pad stack">
+    <div id="t-sum" class="sum"></div>
+    <div class="grid2">
+      <label class="f">Ausgegeben durch<input id="t-bearbeiter" value="${esc(T.bearbeiter)}" placeholder="Gerätewart"></label>
+      <label class="f">Übernommen von<input id="t-uebernommen" value="${esc(T.uebernommen)}" placeholder="Name / Funktion"></label>
+    </div>
+    <label class="f">Bemerkung<textarea id="t-bemerkung" placeholder="z. B. Maske M-03 Sichtscheibe verkratzt">${esc(T.bemerkung)}</textarea></label>
+    <div><div class="row" style="justify-content:space-between"><span class="hint">Unterschrift Übernehmender</span><button class="btn sm" data-act="sigClear">Löschen</button></div>
+    <canvas class="sig" id="sig"></canvas></div>
+    <button class="btn primary block" data-act="tauschSpeichern">Tausch speichern</button>
+  </div></section>`;
+};
+function grouped(list,sel,act){
+  if(!list.length)return'<p class="hint">Keine passenden Geräte.</p>';
+  return['PA','Maske','Flasche'].map(t=>{const l=list.filter(g=>g.typ===t);if(!l.length)return'';
+    return`<div class="group-l">${TYPEN[t]}</div><div class="chips">${l.map(g=>`<button type="button" class="chip ${sel.includes(g.id)?'on':''}" data-act="${act}" data-id="${g.id}" aria-pressed="${sel.includes(g.id)}">${esc(g.nr)}${g.standort!==T?.standort&&act==='pick2'?`<span class="t">${g.standort===S.settings.werkstatt?'Werkst.':esc(g.standort)}</span>`:''}</button>`).join('')}</div>`}).join('');
+}
+function updTausch(){
+  const f=(q,g)=>!q||g.nr.toLowerCase().includes(q.toLowerCase());
+  const c1=aktiv().filter(g=>(g.standort===T.standort||T.zurueck.includes(g.id))&&!T.ausgabe.includes(g.id)&&f(T.q1,g)).sort(sortNr);
+  const c2=aktiv().filter(g=>((g.status==='bereit'&&g.standort!==T.standort)||T.ausgabe.includes(g.id))&&!T.zurueck.includes(g.id)&&f(T.q2,g)).sort(sortNr);
+  $('#pick1').innerHTML=grouped(c1,T.zurueck,'pick1');
+  $('#pick2').innerHTML=grouped(c2,T.ausgabe,'pick2');
+  const cnt=(ids,t)=>ids.filter(i=>byId(i)?.typ===t).length;
+  $('#t-sum').innerHTML=['PA','Maske','Flasche'].map(t=>`<span class="pill muted-p">${TKURZ[t]}: ${cnt(T.zurueck,t)} zurück / ${cnt(T.ausgabe,t)} aus</span>`).join('');
+  saveDraft();
+}
+let sigPad=null;
+function setupSig(canvas,initial,onchange){
+  const ctx=canvas.getContext('2d');let drawing=false,dirty=!!initial;
+  const size=()=>{const r=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1;canvas.width=r.width*dpr;canvas.height=r.height*dpr;ctx.scale(dpr,dpr);
+    ctx.lineWidth=2.2;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle=getComputedStyle(document.body).color;
+    if(initial){const im=new Image();im.onload=()=>ctx.drawImage(im,0,0,r.width,r.height);im.src=initial}};
+  size();
+  const pos=e=>{const r=canvas.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]};
+  canvas.addEventListener('pointerdown',e=>{drawing=true;canvas.setPointerCapture(e.pointerId);ctx.beginPath();ctx.moveTo(...pos(e))});
+  canvas.addEventListener('pointermove',e=>{if(!drawing)return;ctx.lineTo(...pos(e));ctx.stroke();dirty=true});
+  const end=()=>{if(drawing){drawing=false;onchange(exp())}};
+  canvas.addEventListener('pointerup',end);canvas.addEventListener('pointercancel',end);
+  // Export immer schwarz auf transparent (fürs Protokoll)
+  const exp=()=>{if(!dirty)return'';const c=document.createElement('canvas');c.width=canvas.width;c.height=canvas.height;const x=c.getContext('2d');x.drawImage(canvas,0,0);
+    x.globalCompositeOperation='source-in';x.fillStyle='#000';x.fillRect(0,0,c.width,c.height);return c.toDataURL('image/png')};
+  return{clear(){ctx.clearRect(0,0,canvas.width,canvas.height);dirty=false;initial='';onchange('')}};
+}
+function initTausch(){updTausch();sigPad=setupSig($('#sig'),T.sig,d=>{T.sig=d;saveDraft()})}
+function tauschSpeichern(){
+  if(!T.zurueck.length&&!T.ausgabe.length){toast('Bitte mindestens ein Gerät auswählen.');return}
+  const snap=id=>{const g=byId(id);return{id,nr:g.nr,typ:g.typ}};
+  const v={id:uid(),datum:T.datum,anlass:T.anlass,einsatz:T.einsatz,standort:T.standort,bearbeiter:T.bearbeiter,uebernommen:T.uebernommen,bemerkung:T.bemerkung,sig:T.sig,
+    zurueck:T.zurueck.map(snap),ausgabe:T.ausgabe.map(snap),erstellt:isoDT()};
+  const txt=`${T.anlass}${T.einsatz?' '+T.einsatz:''}`;
+  T.zurueck.forEach(id=>{const g=byId(id);g.status='benutzt';hist(g,`Zurückgenommen von ${T.standort} (${txt}) → ${S.settings.werkstatt}`);g.standort=S.settings.werkstatt});
+  T.ausgabe.forEach(id=>{const g=byId(id);hist(g,`Ausgegeben an ${T.standort} (${txt}), vorher ${g.standort}`);g.standort=T.standort});
+  S.vorgaenge.unshift(v);save();T=null;try{localStorage.removeItem(DRAFT)}catch(e){}
+  toast('Tausch gespeichert');go('tausch');openVorgang(v.id);
+}
+
+/* ---------- Inventur ---------- */
+let I=null;
+VIEWS.inventur=()=>`<button class="btn primary block" data-nav="inventurNeu">Inventur starten</button>
+  <section><h2>Inventuren · ${S.inventuren.length}</h2>${S.inventuren.length?`<div class="list">${S.inventuren.map(i=>`<button class="item" data-act="inventurAnsicht" data-id="${i.id}"><span class="main">
+  <span class="t1">${esc(i.standort)} ${i.fehlend.length?`<span class="pill crit-p">${i.fehlend.length} fehlt</span>`:`<span class="pill ok-p">vollständig</span>`}</span>
+  <span class="t2"><span class="mono">${fmtDT(i.datum)}</span> · ${i.vorhanden.length} vorhanden${i.zusaetzlich.length?`, ${i.zusaetzlich.length} zusätzlich`:''}</span></span></button>`).join('')}</div>`:`<div class="list empty">Noch keine Inventur durchgeführt.</div>`}</section>`;
+VIEWS.inventurNeu=()=>{
+  if(!I)I={standort:S.standorte[0]||'',ok:[],extra:[],q:'',bearbeiter:S.settings.bearbeiter,bemerkung:'',korrigieren:true,sig:''};
+  return`<div class="row"><h3 class="grow">Inventur</h3><button class="btn sm" data-act="inventurAbbruch">Abbrechen</button></div>
+  <div class="card pad stack">
+    <label class="f">Standort / Fahrzeug<select id="i-standort">${opts(S.standorte,I.standort)}</select></label>
+  </div>
+  <section><h2>Soll-Bestand prüfen</h2><div class="card pad stack">
+    <div class="row"><span class="hint grow">Vorhandene Geräte antippen. Nicht markierte gelten als fehlend.</span><button class="btn sm" data-act="invAlle">Alle vorhanden</button></div>
+    <div id="inv1"></div></div></section>
+  <section><h2>Zusätzlich vorgefunden</h2><div class="card pad stack">
+    <input type="search" id="i-q" placeholder="Nummer eingeben …" value="${esc(I.q)}" aria-label="Weitere Geräte suchen">
+    <div id="inv2"></div>
+    <label class="row hint"><input type="checkbox" id="i-korr" style="width:auto;min-height:0" ${I.korrigieren?'checked':''}> Standort dieser Geräte auf „${esc(I.standort)}“ korrigieren</label>
+  </div></section>
+  <section><h2>Abschluss</h2><div class="card pad stack">
+    <div id="inv-sum" class="sum"></div>
+    <label class="f">Geprüft durch<input id="i-bearbeiter" value="${esc(I.bearbeiter)}"></label>
+    <label class="f">Bemerkung<textarea id="i-bemerkung">${esc(I.bemerkung)}</textarea></label>
+    <div><div class="row" style="justify-content:space-between"><span class="hint">Unterschrift</span><button class="btn sm" data-act="sigClear">Löschen</button></div><canvas class="sig" id="sig"></canvas></div>
+    <button class="btn primary block" data-act="inventurSpeichern">Inventur abschließen</button>
+  </div></section>`;
+};
+function updInv(){
+  const soll=aktiv().filter(g=>g.standort===I.standort).sort(sortNr);
+  $('#inv1').innerHTML=soll.length?['PA','Maske','Flasche'].map(t=>{const l=soll.filter(g=>g.typ===t);return l.length?`<div class="group-l">${TYPEN[t]}</div><div class="chips">${l.map(g=>`<button class="chip ${I.ok.includes(g.id)?'on':''}" data-act="invToggle" data-id="${g.id}" aria-pressed="${I.ok.includes(g.id)}">${I.ok.includes(g.id)?'✓ ':''}${esc(g.nr)}</button>`).join('')}</div>`:''}).join(''):'<p class="hint">Laut Bestand sind hier keine Geräte.</p>';
+  const q=I.q.trim().toLowerCase();
+  const others=aktiv().filter(g=>g.standort!==I.standort&&(I.extra.includes(g.id)||(q&&g.nr.toLowerCase().includes(q)))).sort(sortNr).slice(0,30);
+  $('#inv2').innerHTML=others.length?`<div class="chips">${others.map(g=>`<button class="chip ${I.extra.includes(g.id)?'on':''}" data-act="invExtra" data-id="${g.id}">${esc(g.nr)}<span class="t">${esc(g.standort)}</span></button>`).join('')}</div>`:'<p class="hint">Nummer eingeben, um ein Gerät von einem anderen Standort hinzuzufügen.</p>';
+  const fehl=soll.filter(g=>!I.ok.includes(g.id)).length;
+  $('#inv-sum').innerHTML=`<span class="pill ok-p">${I.ok.length} vorhanden</span><span class="pill ${fehl?'crit-p':'muted-p'}">${fehl} fehlend</span><span class="pill info-p">${I.extra.length} zusätzlich</span>`;
+}
+function initInventur(){updInv();sigPad=setupSig($('#sig'),I.sig,d=>I.sig=d)}
+function inventurSpeichern(){
+  const soll=aktiv().filter(g=>g.standort===I.standort);
+  const snap=g=>({id:g.id,nr:g.nr,typ:g.typ,standortVorher:g.standort});
+  const inv={id:uid(),datum:isoDT(),standort:I.standort,bearbeiter:I.bearbeiter,bemerkung:I.bemerkung,sig:I.sig,
+    vorhanden:soll.filter(g=>I.ok.includes(g.id)).map(snap),fehlend:soll.filter(g=>!I.ok.includes(g.id)).map(snap),zusaetzlich:I.extra.map(id=>snap(byId(id)))};
+  inv.vorhanden.forEach(x=>hist(byId(x.id),`Inventur ${I.standort}: vorhanden`));
+  inv.fehlend.forEach(x=>hist(byId(x.id),`Inventur ${I.standort}: FEHLT`));
+  I.extra.forEach(id=>{const g=byId(id);hist(g,`Inventur: vorgefunden auf ${I.standort} (laut Bestand ${g.standort})`);if(I.korrigieren)g.standort=I.standort});
+  S.inventuren.unshift(inv);save();I=null;toast('Inventur gespeichert');go('inventur');openInventur(inv.id);
+}
+
+/* ---------- Export & Einstellungen ---------- */
+VIEWS.mehr=()=>`
+  <section><h2>Excel / CSV</h2><div class="list">
+    <button class="item" data-act="csvGeraete"><span class="main"><span class="t1">Geräteliste</span><span class="t2">Alle Geräte mit Status, Standort und Fristen</span></span></button>
+    <button class="item" data-act="csvVorgaenge"><span class="main"><span class="t1">Tauschvorgänge</span><span class="t2">Eine Zeile pro getauschtem Gerät</span></span></button>
+    <button class="item" data-act="csvInventuren"><span class="main"><span class="t1">Inventuren</span><span class="t2">Eine Zeile pro geprüftem Gerät</span></span></button>
+  </div></section>
+  <section><h2>PDF / Drucken</h2><div class="list">
+    <button class="item" data-act="pdfBestand"><span class="main"><span class="t1">Bestandsliste nach Standort</span><span class="t2">Im Druckdialog „Als PDF sichern“ wählen</span></span></button>
+    <button class="item" data-act="pdfFristen"><span class="main"><span class="t1">Prüffristen-Übersicht</span><span class="t2">Alle Fristen, die nächsten 90 Tage hervorgehoben</span></span></button>
+  </div><p class="hint" style="margin-top:6px">Tausch- und Inventurprotokolle druckst du direkt aus dem jeweiligen Vorgang.</p></section>
+  <section><h2>Datensicherung</h2><div class="card pad stack">
+    <p class="hint">Die Daten liegen nur in diesem Browser. Sichere sie regelmäßig, z. B. in iCloud Drive oder Google Drive. ${S.settings.lastBackup?`Letzte Sicherung: <span class="mono">${fmtDT(S.settings.lastBackup)}</span>`:'Noch keine Sicherung.'}</p>
+    <div class="actions"><button class="btn" data-act="backup">Sicherung speichern</button><label class="btn" for="restore">Sicherung laden</label></div>
+    <input type="file" id="restore" accept=".json,application/json" hidden>
+  </div></section>
+  <section><h2>Einstellungen</h2><div class="card pad stack">
+    <label class="f">Feuerwehr / Organisation (erscheint auf Protokollen)<input id="s-feuerwehr" value="${esc(S.settings.feuerwehr)}" placeholder="z. B. FF Musterstadt, Atemschutzwerkstatt"></label>
+    <label class="f">Mein Name (Vorbelegung)<input id="s-bearbeiter" value="${esc(S.settings.bearbeiter)}"></label>
+    <div class="grid2">
+      <label class="f">Werkstatt-Standort<select id="s-werkstatt">${opts(S.standorte,S.settings.werkstatt)}</select></label>
+      <label class="f">Fristen-Vorwarnung (Tage)<input id="s-vorlauf" type="number" min="1" max="365" value="${S.settings.vorlauf}"></label>
+    </div>
+    <div class="group-l">Standorte & Fahrzeuge</div>
+    <div class="chips">${S.standorte.map(s=>`<span class="chip">${esc(s)}${s!==S.settings.werkstatt?` <button class="x" style="width:24px;height:24px;font-size:14px" data-act="standortWeg" data-s="${esc(s)}" aria-label="${esc(s)} entfernen">×</button>`:''}</span>`).join('')}</div>
+    <div class="row"><input id="s-neu" class="grow" placeholder="Neuer Standort, z. B. TLF 3000"><button class="btn" data-act="standortNeu">Hinzufügen</button></div>
+  </div></section>
+  <section><h2>Daten</h2><div class="card pad stack">
+    ${S.settings.beispiel?`<button class="btn" data-act="beispielWeg">Beispieldaten löschen und leer starten</button>`:`<button class="btn" data-act="beispielLaden">Beispieldaten laden (ersetzt alles)</button>`}
+    <button class="btn danger" data-act="allesWeg">Alle Daten löschen</button>
+    <p class="hint">Atemschutz-Logbuch · läuft offline · Version 1.0</p>
+  </div></section>`;
+
+function download(name,content,mime){
+  const blob=content instanceof Blob?content:new Blob([content],{type:mime});
+  const file=new File([blob],name,{type:mime});
+  const ios=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  if(ios&&navigator.canShare&&navigator.canShare({files:[file]})){navigator.share({files:[file],title:name}).catch(()=>{});return}
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
+}
+const csvCell=v=>{v=String(v??'');return/[;"\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+function csv(name,head,rows){download(name,'﻿'+[head,...rows].map(r=>r.map(csvCell).join(';')).join('\r\n'),'text/csv;charset=utf-8')}
+const stamp=()=>isoDate().replace(/-/g,'');
+function csvGeraete(){csv(`Geraete_${stamp()}.csv`,['Typ','Nummer','Hersteller','Modell','Seriennummer','Standort','Status','Nächste Prüfung','TÜV fällig','Volumen (l)','Druck (bar)','Maskengröße','Notiz','Letzte Änderung'],
+  [...S.geraete].sort(sortNr).map(g=>[TYPEN[g.typ],g.nr,g.hersteller,g.modell,g.seriennr,g.standort,STATUS[g.status].l,g.pruefung?fmtD(g.pruefung):'',g.tuev?fmtD(g.tuev):'',g.volumen,g.druck,g.groesse,g.notiz,g.historie?.[0]?fmtDT(g.historie[0].d)+' '+g.historie[0].t:'']))}
+function csvVorgaenge(){const r=[];S.vorgaenge.forEach(v=>{[['Zurückgenommen',v.zurueck],['Ausgegeben',v.ausgabe]].forEach(([dir,l])=>l.forEach(x=>r.push([fmtDT(v.datum),v.anlass,v.einsatz,v.standort,dir,TYPEN[x.typ],x.nr,v.bearbeiter,v.uebernommen,v.bemerkung])))});
+  csv(`Tauschvorgaenge_${stamp()}.csv`,['Datum','Anlass','Einsatz/Stichwort','Fahrzeug/Standort','Richtung','Typ','Nummer','Ausgegeben durch','Übernommen von','Bemerkung'],r)}
+function csvInventuren(){const r=[];S.inventuren.forEach(i=>{[['vorhanden',i.vorhanden],['fehlt',i.fehlend],['zusätzlich vorgefunden',i.zusaetzlich]].forEach(([e,l])=>l.forEach(x=>r.push([fmtDT(i.datum),i.standort,TYPEN[x.typ],x.nr,e,x.standortVorher,i.bearbeiter,i.bemerkung])))});
+  csv(`Inventuren_${stamp()}.csv`,['Datum','Standort','Typ','Nummer','Ergebnis','Standort laut Bestand','Geprüft durch','Bemerkung'],r)}
+function backup(){download(`Atemschutz-Sicherung_${stamp()}.json`,JSON.stringify(S,null,1),'application/json');S.settings.lastBackup=isoDT();save();if(view!=='mehr')render();else render()}
+
+/* ---------- Druck / PDF ---------- */
+function printDoc(title,body){
+  $('#print').innerHTML=`<div class="ph"><div><div style="font-size:9pt">${esc(S.settings.feuerwehr||'')}</div><h1>${esc(title)}</h1></div><div style="font-size:9pt">Stand: ${fmtDT(isoDT())}</div></div>${body}
+  <div class="foot">Erstellt mit Atemschutz-Logbuch · ${fmtDT(isoDT())}</div>`;
+  const old=document.title;document.title=title.replace(/[^\wäöüÄÖÜß\- ]/g,'');setTimeout(()=>{window.print();document.title=old},50);
+}
+const devTable=l=>l.length?`<table><tr><th>Typ</th><th>Nummer</th></tr>${l.map(x=>`<tr><td>${TYPEN[x.typ]}</td><td>${esc(x.nr)}</td></tr>`).join('')}</table>`:'<p>– keine –</p>';
+function printVorgang(v){printDoc('Tauschprotokoll Atemschutz',`
+  <table class="kv"><tr><td>Datum / Uhrzeit</td><td>${fmtDT(v.datum)}</td></tr><tr><td>Anlass</td><td>${esc(v.anlass)}</td></tr>
+  <tr><td>Einsatz-Nr. / Stichwort</td><td>${esc(v.einsatz)||'–'}</td></tr><tr><td>Fahrzeug / Standort</td><td>${esc(v.standort)}</td></tr></table>
+  <h2>Zurückgenommen (benutzt) – ${v.zurueck.length}</h2>${devTable(v.zurueck)}
+  <h2>Ausgegeben (einsatzbereit) – ${v.ausgabe.length}</h2>${devTable(v.ausgabe)}
+  ${v.bemerkung?`<h2>Bemerkung</h2><p>${esc(v.bemerkung)}</p>`:''}
+  <div class="sigbox"><div>${esc(v.bearbeiter)||'&nbsp;'}<br>Ausgegeben durch</div><div>${v.sig?`<img src="${v.sig}" alt="Unterschrift">`:''}${esc(v.uebernommen)||'&nbsp;'}<br>Übernommen von</div></div>`)}
+function printInventur(i){printDoc(`Inventurprotokoll ${i.standort}`,`
+  <table class="kv"><tr><td>Datum</td><td>${fmtDT(i.datum)}</td></tr><tr><td>Standort</td><td>${esc(i.standort)}</td></tr><tr><td>Ergebnis</td><td>${i.vorhanden.length} vorhanden, ${i.fehlend.length} fehlend, ${i.zusaetzlich.length} zusätzlich</td></tr></table>
+  <h2>Fehlend – ${i.fehlend.length}</h2>${devTable(i.fehlend)}
+  <h2>Zusätzlich vorgefunden – ${i.zusaetzlich.length}</h2>${i.zusaetzlich.length?`<table><tr><th>Typ</th><th>Nummer</th><th>Standort laut Bestand</th></tr>${i.zusaetzlich.map(x=>`<tr><td>${TYPEN[x.typ]}</td><td>${esc(x.nr)}</td><td>${esc(x.standortVorher)}</td></tr>`).join('')}</table>`:'<p>– keine –</p>'}
+  <h2>Vorhanden – ${i.vorhanden.length}</h2>${devTable(i.vorhanden)}
+  ${i.bemerkung?`<h2>Bemerkung</h2><p>${esc(i.bemerkung)}</p>`:''}
+  <div class="sigbox"><div>${i.sig?`<img src="${i.sig}" alt="Unterschrift">`:''}${esc(i.bearbeiter)||'&nbsp;'}<br>Geprüft durch</div><div>&nbsp;<br>Gegengezeichnet</div></div>`)}
+function printBestand(){printDoc('Bestandsliste Atemschutz',S.standorte.map(s=>{const l=aktiv().filter(g=>g.standort===s).sort(sortNr);if(!l.length)return'';
+  return`<h2>${esc(s)} – ${l.length} Geräte</h2><table><tr><th>Typ</th><th>Nummer</th><th>Modell</th><th>Status</th><th>Prüfung</th><th>TÜV</th></tr>${l.map(g=>`<tr><td>${TYPEN[g.typ]}</td><td>${esc(g.nr)}</td><td>${esc(g.hersteller+' '+g.modell)}</td><td>${STATUS[g.status].l}</td><td>${fmtD(g.pruefung)}</td><td>${g.typ==='Flasche'?fmtD(g.tuev):''}</td></tr>`).join('')}</table>`}).join(''))}
+function printFristen(){const r=[];aktiv().forEach(g=>fristen(g).forEach(([l,d])=>r.push({g,l,d,n:daysUntil(d)})));r.sort((a,b)=>a.n-b.n);
+  printDoc('Prüffristen Atemschutz',`<table><tr><th>Fällig</th><th>Tage</th><th>Art</th><th>Typ</th><th>Nummer</th><th>Standort</th></tr>${r.map(x=>`<tr style="${x.n<0?'font-weight:bold':x.n<=90?'background:#f3f3f3':''}"><td>${fmtD(x.d)}</td><td>${x.n<0?'überfällig':x.n}</td><td>${x.l}</td><td>${TYPEN[x.g.typ]}</td><td>${esc(x.g.nr)}</td><td>${esc(x.g.standort)}</td></tr>`).join('')}</table>`)}
+
+/* ---------- Sheets (Detailansichten) ---------- */
+function sheet(html){closeSheet();const o=document.createElement('div');o.className='overlay';o.id='ov';o.innerHTML=`<div class="sheet" role="dialog" aria-modal="true">${html}</div>`;
+  o.addEventListener('click',e=>{if(e.target===o)closeSheet()});document.body.appendChild(o);document.body.style.overflow='hidden'}
+function closeSheet(){$('#ov')?.remove();document.body.style.overflow=''}
+function openGeraet(id){
+  const neu=!id;const g=neu?{id:'',typ:ui.typ||'PA',nr:'',hersteller:'',modell:'',seriennr:'',standort:S.settings.werkstatt,status:'bereit',pruefung:'',tuev:'',volumen:'',druck:'',groesse:'',notiz:'',historie:[]}:byId(id);
+  sheet(`<div class="sheet-h"><h3>${neu?'Neues Gerät':`<span class="mono">${esc(g.nr)}</span>`}</h3><button class="x" data-act="close" aria-label="Schließen">×</button></div>
+  <form id="gform" class="stack" data-typ="${g.typ}">
+    <div class="grid2">
+      <label class="f">Gerätetyp<select name="typ" id="g-typ">${opts(Object.entries(TYPEN),g.typ)}</select></label>
+      <label class="f">Gerätenummer *<input name="nr" required value="${esc(g.nr)}" placeholder="z. B. PA-07" autocomplete="off"></label>
+      <label class="f">Hersteller<input name="hersteller" value="${esc(g.hersteller)}" list="dl-herst"></label>
+      <label class="f">Modell<input name="modell" value="${esc(g.modell)}"></label>
+      <label class="f">Seriennummer<input name="seriennr" value="${esc(g.seriennr)}"></label>
+      <label class="f">Standort<select name="standort">${opts(S.standorte,g.standort)}</select></label>
+      <label class="f">Status<select name="status">${opts(Object.entries(STATUS).map(([k,v])=>[k,v.l]),g.status)}</select></label>
+      <label class="f">Nächste Prüfung fällig<input type="date" name="pruefung" value="${esc(g.pruefung)}"></label>
+      <label class="f" data-for="Flasche">TÜV / Druckprüfung fällig<input type="date" name="tuev" value="${esc(g.tuev)}"></label>
+      <label class="f" data-for="Flasche">Volumen (l)<input name="volumen" inputmode="decimal" value="${esc(g.volumen)}" placeholder="6,8"></label>
+      <label class="f" data-for="Flasche">Fülldruck (bar)<input name="druck" inputmode="numeric" value="${esc(g.druck)}" placeholder="300"></label>
+      <label class="f" data-for="Maske">Maskengröße<select name="groesse">${opts(['','S','M','L'],g.groesse)}</select></label>
+    </div>
+    <label class="f">Notiz<textarea name="notiz">${esc(g.notiz)}</textarea></label>
+    <datalist id="dl-herst"><option>Dräger</option><option>MSA</option><option>Interspiro</option><option>Luxfer</option><option>Auer</option></datalist>
+    ${!neu&&g.status!=='bereit'&&g.status!=='ausgesondert'?`<button type="button" class="btn" data-act="erledigtSheet" data-id="${g.id}">${g.typ==='Flasche'?'Gefüllt & geprüft':'Wartung erledigt'} → einsatzbereit</button>`:''}
+    <div class="actions"><button type="submit" class="btn primary">Speichern</button>${neu?`<button type="button" class="btn" data-act="close">Abbrechen</button>`:`<button type="button" class="btn danger" data-act="geraetLoeschen" data-id="${g.id}">Löschen</button>`}</div>
+    <p class="hint" id="g-err" hidden></p>
+  </form>
+  ${!neu?`<section><h2>Verlauf</h2><ul class="hist">${(g.historie||[]).slice(0,40).map(h=>`<li><span class="d">${fmtDT(h.d)}</span><span>${esc(h.t)}</span></li>`).join('')||'<li class="hint">Kein Verlauf</li>'}</ul></section>`:''}`);
+  const f=$('#gform');const showTyp=()=>{$$('[data-for]',f).forEach(el=>el.hidden=el.dataset.for!==f.typ.value)};showTyp();
+  f.typ.addEventListener('change',showTyp);
+  f.addEventListener('submit',e=>{e.preventDefault();const d=Object.fromEntries(new FormData(f));d.nr=d.nr.trim();
+    if(S.geraete.some(x=>x.nr.toLowerCase()===d.nr.toLowerCase()&&x.typ===d.typ&&x.id!==g.id)){const er=$('#g-err');er.hidden=false;er.textContent=`Die Nummer ${d.nr} gibt es bei diesem Typ schon.`;return}
+    if(neu){const n={...g,...d,id:uid(),historie:[]};hist(n,'Angelegt');S.geraete.push(n)}
+    else{const ch=[];if(d.status!==g.status)ch.push(`Status: ${STATUS[d.status].l}`);if(d.standort!==g.standort)ch.push(`Standort: ${d.standort}`);
+      if(d.pruefung!==g.pruefung)ch.push(`Prüfung fällig: ${fmtD(d.pruefung)}`);if(d.tuev!==g.tuev)ch.push(`TÜV fällig: ${fmtD(d.tuev)}`);
+      Object.assign(g,d);hist(g,ch.length?ch.join(', '):'Daten bearbeitet')}
+    save();closeSheet();render();toast(neu?'Gerät angelegt':'Gespeichert')});
+}
+function openVorgang(id){const v=S.vorgaenge.find(x=>x.id===id);
+  const chips=l=>l.length?`<div class="chips">${l.map(x=>`<span class="chip"><span class="t">${TKURZ[x.typ]}</span>${esc(x.nr)}</span>`).join('')}</div>`:'<p class="hint">– keine –</p>';
+  sheet(`<div class="sheet-h"><h3>Tausch ${esc(v.standort)}</h3><button class="x" data-act="close" aria-label="Schließen">×</button></div>
+  <p class="hint"><span class="mono">${fmtDT(v.datum)}</span> · ${esc(v.anlass)}${v.einsatz?' · '+esc(v.einsatz):''}</p>
+  <section><h2>Zurückgenommen · ${v.zurueck.length}</h2>${chips(v.zurueck)}</section>
+  <section><h2>Ausgegeben · ${v.ausgabe.length}</h2>${chips(v.ausgabe)}</section>
+  ${v.bemerkung?`<section><h2>Bemerkung</h2><p style="margin:0">${esc(v.bemerkung)}</p></section>`:''}
+  <p class="hint">Ausgegeben durch ${esc(v.bearbeiter)||'–'} · übernommen von ${esc(v.uebernommen)||'–'}${v.sig?' · unterschrieben':''}</p>
+  <div class="actions"><button class="btn primary" data-act="printVorgang" data-id="${v.id}">Protokoll als PDF</button><button class="btn danger" data-act="vorgangLoeschen" data-id="${v.id}">Eintrag löschen</button></div>
+  <p class="hint">Löschen entfernt nur den Protokolleintrag. Standorte und Status der Geräte bleiben unverändert.</p>`)}
+function openInventur(id){const i=S.inventuren.find(x=>x.id===id);
+  const chips=(l,cls='')=>l.length?`<div class="chips">${l.map(x=>`<span class="chip ${cls}"><span class="t">${TKURZ[x.typ]}</span>${esc(x.nr)}</span>`).join('')}</div>`:'<p class="hint">– keine –</p>';
+  sheet(`<div class="sheet-h"><h3>Inventur ${esc(i.standort)}</h3><button class="x" data-act="close" aria-label="Schließen">×</button></div>
+  <p class="hint"><span class="mono">${fmtDT(i.datum)}</span> · ${esc(i.bearbeiter)||'–'}</p>
+  <section><h2>Fehlend · ${i.fehlend.length}</h2>${chips(i.fehlend,'miss')}</section>
+  <section><h2>Zusätzlich vorgefunden · ${i.zusaetzlich.length}</h2>${chips(i.zusaetzlich)}</section>
+  <section><h2>Vorhanden · ${i.vorhanden.length}</h2>${chips(i.vorhanden)}</section>
+  ${i.bemerkung?`<section><h2>Bemerkung</h2><p style="margin:0">${esc(i.bemerkung)}</p></section>`:''}
+  <div class="actions"><button class="btn primary" data-act="printInventur" data-id="${i.id}">Protokoll als PDF</button><button class="btn danger" data-act="inventurLoeschen" data-id="${i.id}">Eintrag löschen</button></div>`)}
+function erledigt(id){const g=byId(id);g.status='bereit';hist(g,g.typ==='Flasche'?'Gefüllt & geprüft → einsatzbereit':'Wartung/Prüfung erledigt → einsatzbereit');save()}
+
+/* ---------- Ereignisse ---------- */
+document.addEventListener('click',e=>{
+  const nav=e.target.closest('[data-nav]');if(nav){closeSheet();go(nav.dataset.nav);return}
+  const b=e.target.closest('[data-act]');if(!b)return;const id=b.dataset.id,a=b.dataset.act;
+  const A={
+    close:closeSheet, geraet:()=>openGeraet(id), neuGeraet:()=>openGeraet(null),
+    vorgang:()=>openVorgang(id), inventurAnsicht:()=>openInventur(id),
+    filterStatus:()=>{ui={typ:'',status:b.dataset.s,standort:'',q:''};go('geraete')},
+    ftyp:()=>{ui.typ=b.dataset.v;render()},
+    erledigt:()=>{erledigt(id);render();toast('Einsatzbereit')},
+    erledigtSheet:()=>{erledigt(id);closeSheet();render();toast('Einsatzbereit')},
+    geraetLoeschen:()=>{if(confirm(`Gerät ${byId(id).nr} endgültig löschen? Tipp: Status „Ausgesondert“ behält den Verlauf.`)){S.geraete=S.geraete.filter(g=>g.id!==id);save();closeSheet();render()}},
+    pick1:()=>{T.zurueck=T.zurueck.includes(id)?T.zurueck.filter(x=>x!==id):[...T.zurueck,id];updTausch()},
+    pick2:()=>{T.ausgabe=T.ausgabe.includes(id)?T.ausgabe.filter(x=>x!==id):[...T.ausgabe,id];updTausch()},
+    sigClear:()=>sigPad&&sigPad.clear(),
+    tauschSpeichern, tauschVerwerfen:()=>{if(confirm('Diesen Tausch verwerfen?')){T=null;try{localStorage.removeItem(DRAFT)}catch(e){}go('tausch')}},
+    printVorgang:()=>printVorgang(S.vorgaenge.find(v=>v.id===id)), printInventur:()=>printInventur(S.inventuren.find(v=>v.id===id)),
+    vorgangLoeschen:()=>{if(confirm('Protokolleintrag löschen?')){S.vorgaenge=S.vorgaenge.filter(v=>v.id!==id);save();closeSheet();render()}},
+    inventurLoeschen:()=>{if(confirm('Inventur-Eintrag löschen?')){S.inventuren=S.inventuren.filter(v=>v.id!==id);save();closeSheet();render()}},
+    invToggle:()=>{I.ok=I.ok.includes(id)?I.ok.filter(x=>x!==id):[...I.ok,id];updInv()},
+    invExtra:()=>{I.extra=I.extra.includes(id)?I.extra.filter(x=>x!==id):[...I.extra,id];updInv()},
+    invAlle:()=>{I.ok=aktiv().filter(g=>g.standort===I.standort).map(g=>g.id);updInv()},
+    inventurSpeichern, inventurAbbruch:()=>{I=null;go('inventur')},
+    csvGeraete,csvVorgaenge,csvInventuren,backup, pdfBestand:printBestand, pdfFristen:printFristen,
+    standortNeu:()=>{const v=$('#s-neu').value.trim();if(!v)return;if(S.standorte.includes(v)){toast('Gibt es schon');return}S.standorte.push(v);save();render()},
+    standortWeg:()=>{const s=b.dataset.s;const n=S.geraete.filter(g=>g.standort===s).length;if(n){toast(`Noch ${n} Geräte auf ${s} – erst umsetzen.`);return}S.standorte=S.standorte.filter(x=>x!==s);save();render()},
+    beispielWeg:()=>{if(confirm('Beispieldaten löschen und mit leerer App starten?')){const st=S.settings;S=emptyState();S.settings.feuerwehr=st.feuerwehr;S.settings.bearbeiter=st.bearbeiter;save();go('mehr');toast('Leg zuerst deine Standorte an, dann die Geräte.')}},
+    beispielLaden:()=>{if(confirm('Alle aktuellen Daten durch Beispieldaten ersetzen?')){S=sampleState();save();go('start')}},
+    allesWeg:()=>{if(confirm('Wirklich ALLE Daten löschen? Das kann nicht rückgängig gemacht werden.')){S=emptyState();save();go('start')}},
+  };
+  if(A[a]){e.preventDefault();A[a]()}
+});
+document.addEventListener('input',e=>{const t=e.target;
+  if(t.id==='q'){ui.q=t.value;$('#glist').innerHTML=geraeteListe()}
+  else if(t.id==='t-q1'){T.q1=t.value;updTausch()} else if(t.id==='t-q2'){T.q2=t.value;updTausch()}
+  else if(t.id&&t.id.startsWith('t-')&&T){T[t.id.slice(2)]=t.value;if(t.id==='t-standort'){T.zurueck=[];T.ausgabe=[];updTausch()}else saveDraft()}
+  else if(t.id==='i-q'){I.q=t.value;updInv()}
+  else if(t.id==='i-bearbeiter'||t.id==='i-bemerkung'){I[t.id.slice(2)]=t.value}
+});
+document.addEventListener('change',e=>{const t=e.target;
+  if(t.id==='fstatus'){ui.status=t.value;$('#glist').innerHTML=geraeteListe()}
+  else if(t.id==='fstandort'){ui.standort=t.value;$('#glist').innerHTML=geraeteListe()}
+  else if(t.id==='i-standort'){I.standort=t.value;I.ok=[];I.extra=[];render()}
+  else if(t.id==='i-korr'){I.korrigieren=t.checked}
+  else if(t.id&&t.id.startsWith('s-')&&t.id!=='s-neu'){const k=t.id.slice(2);S.settings[k]=k==='vorlauf'?Math.max(1,+t.value||30):t.value.trim();save();$('#subtitle').textContent=S.settings.feuerwehr;toast('Gespeichert')}
+  else if(t.id==='restore'&&t.files[0]){const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!Array.isArray(d.geraete))throw 0;
+    if(confirm(`Sicherung mit ${d.geraete.length} Geräten und ${d.vorgaenge?.length||0} Tauschvorgängen laden? Aktuelle Daten werden ersetzt.`)){S=Object.assign(emptyState(),d);S.settings=Object.assign(emptyState().settings,d.settings);save();go('start');toast('Sicherung geladen')}}
+    catch(x){toast('Die Datei ist keine gültige Sicherung.')}};r.readAsText(t.files[0])}
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet()});
+
+render();
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
