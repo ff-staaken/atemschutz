@@ -1,6 +1,6 @@
 # Atemschutz-Logbuch
 
-Web-App der FF Staaken für Inventur und Tausch von Pressluftatmern, Atemschutzmasken und Atemluftflaschen.
+Web-App der FF Staaken für Inventur und Tausch der Atemschutztechnik: Pressluftatmer, Fluchthauben, Masken (M/S), Filter, CO-Warner, Mehrgasmessgeräte und Sonstiges – pro Fahrzeug, wie in der Inventarliste.
 Läuft im Browser am Handy, auch offline.
 
 **App:** https://ff-staaken.github.io/atemschutz/
@@ -32,12 +32,21 @@ Der Token bleibt nur auf diesem Handy gespeichert und erlaubt ausschließlich Zu
 Geht ein Handy verloren: Token auf GitHub löschen.
 
 ## So funktioniert der Abgleich
+- Die Daten liegen in `inventar.json`.
 - Jede Änderung wird sofort auf dem Handy gespeichert und nach wenigen Sekunden mit GitHub abgeglichen.
 - Ohne Netz werden Änderungen gesammelt und automatisch hochgeladen, sobald wieder Verbindung besteht.
 - Ändern zwei Personen dasselbe Gerät, gilt die neuere Änderung. Der Verlauf beider Änderungen bleibt erhalten.
 - Jede Änderung ist im Daten-Repository mit Name und Zeitpunkt nachvollziehbar (Commit-Verlauf).
 - Unterschriften liegen als Bilder im Ordner `unterschriften/`.
 
+## Bestand übernehmen
+Die bestehende Inventarliste wird einmalig über **Mehr → Datei laden** eingelesen (Startdatei `.json`).
+Die Startdatei gehört **nicht** in dieses öffentliche Repository.
+
 ## Export
-- **CSV** (Excel, Semikolon-getrennt): Geräteliste, Tauschvorgänge, Inventuren
-- **PDF**: Tauschprotokoll, Inventurprotokoll, Bestandsliste, Prüffristen (Druckdialog → „Als PDF sichern“)
+- **Inventarliste als Excel (.xlsx)** im Aufbau der bisherigen Liste, Fälliges gelb, Abgelaufenes rot
+- **PDF**: Inventarliste, Fälligkeiten, Tausch- und Inventurprotokolle (Druckdialog → „Als PDF sichern“)
+- **CSV**: Tauschvorgänge
+
+## Datumsangaben
+Alle Monatsangaben (z. B. `11/26`) bedeuten: gültig bis Ende dieses Monats.

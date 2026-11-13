@@ -1,5 +1,5 @@
 // Offline-Cache für die App-Dateien. Anfragen an GitHub (Daten) werden nie zwischengespeichert.
-const CACHE = 'atemschutz-v2';
+const CACHE = 'atemschutz-v3';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener('activate', e => {
