@@ -193,11 +193,11 @@ main a{color:var(--accent)}
         <rect x="22" y="7" width="178" height="60" rx="7" fill="#4b5563" stroke="#0e1014" stroke-width="2.5"/>
         <path d="M232 49 C238 72 150 72 62 67" fill="none" stroke="#0e1014" stroke-width="3.5" stroke-linecap="round"/>
         <circle cx="56" cy="66" r="7" fill="#f3f4f6" stroke="#0e1014" stroke-width="2.5"/><path d="M56 66 L59 62" stroke="#d2161e" stroke-width="2" stroke-linecap="round"/>
-        <rect x="12" y="14" width="204" height="46" rx="23" fill="#f3f4f6" stroke="#0e1014" stroke-width="3"/>
+        <rect x="12" y="14" width="204" height="46" rx="23" fill="#f7b21b" stroke="#0e1014" stroke-width="3"/>
         <path d="M190 15.5 Q214 18 214 37 Q214 56 190 58.5" fill="#0e1014"/><path d="M196 17 Q210 22 210 37 Q210 52 196 57 Z" fill="#ffffff"/>
-        <path d="M36 21 Q110 17 184 21" fill="none" stroke="#c7cad1" stroke-width="2"/>
-        <rect x="21" y="11" width="9" height="52" rx="2" fill="#d2161e" stroke="#0e1014" stroke-width="2"/>
-        <rect x="177" y="11" width="9" height="52" rx="2" fill="#d2161e" stroke="#0e1014" stroke-width="2"/>
+        <path d="M36 21 Q110 17 184 21" fill="none" stroke="#fcd977" stroke-width="2.5"/>
+        <rect x="21" y="11" width="9" height="52" rx="2" fill="#16181d" stroke="#0e1014" stroke-width="2"/>
+        <rect x="177" y="11" width="9" height="52" rx="2" fill="#16181d" stroke="#0e1014" stroke-width="2"/>
         <rect x="215" y="30" width="9" height="14" fill="#9ca3af" stroke="#0e1014" stroke-width="2"/>
         <rect x="223" y="25" width="15" height="24" rx="2" fill="#9ca3af" stroke="#0e1014" stroke-width="2"/>
         <ellipse cx="245" cy="37" rx="6" ry="15" fill="#1f2937" stroke="#0e1014" stroke-width="2"/><path d="M245 24 V50" stroke="#4b5563" stroke-width="1.5"/>
@@ -360,7 +360,7 @@ VIEWS.start=()=>{
   const lb=S.settings.lastBackup, lbDays=lb?-daysUntil(lb.slice(0,10)):null;
   const vn=(me()||'').split(' ')[0],lv=S.vorgaenge[0];
   return`
-  <div class="hello"><div class="eyebrow">${new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'})}</div><h3>Moin${vn?' '+esc(vn):''}!</h3>
+  <div class="hello"><div class="eyebrow">${new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'})}</div><h3>Hi${vn?' '+esc(vn):''}!</h3>
     ${lv?`<p class="hint" style="margin-top:4px">Letzter Tausch: <b>${esc(lv.ortName)}</b> · ${relZeit(lv.datum)}${lv.von?' · '+esc(lv.von):''}</p>`:''}</div>
   ${S.settings.beispiel?`<div class="banner info"><span class="grow">Du siehst <b>Beispieldaten</b>. Unter <b>Mehr</b> verbindest du die App mit den gemeinsamen Daten oder lädst eure Inventarliste.</span><button class="btn sm" data-nav="mehr">Zu Mehr</button></div>`:''}
   ${!verbunden()&&!S.settings.beispiel&&S.geraete.length&&(lbDays===null||lbDays>14)?`<div class="banner warn"><span class="grow">${lb?`Letzte Datensicherung vor ${lbDays} Tagen.`:'Noch keine Datensicherung erstellt.'} Die Daten liegen nur auf diesem Gerät.</span><button class="btn sm" data-act="backup">Jetzt sichern</button></div>`:''}
