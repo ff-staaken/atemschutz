@@ -961,7 +961,7 @@ function benutzerHtml(){
   if(!usersOn())return`<section><h2>Benutzer</h2><div class="card pad stack">
     <p class="hint">Wie bei der Kantine meldet sich jede Person mit Namen und eigenem Passwort an. Dann steht bei jedem Tausch, jeder Inventur und jeder Änderung, wer es war. Lege zuerst dich selbst als Admin an.</p>
     <label class="f">Dein Name<input id="u-name" autocomplete="name" placeholder="Vor- und Nachname"></label>
-    <label class="f">Dein Passwort<input id="u-pw" type="password" autocomplete="new-password" placeholder="mindestens 6 Zeichen"></label>
+    <label class="f">Dein Passwort<input id="u-pw" type="password" autocomplete="new-password" placeholder="4 bis 6 Zeichen" maxlength="6"></label>
     <input type="hidden" id="u-role" value="admin"><p class="err" id="u-err" hidden></p>
     <button class="btn primary" data-act="userNeu">Als Admin anlegen und anmelden</button></div></section>`;
   if(!cu)return`<section><h2>Anmeldung</h2><div class="card pad stack"><p class="hint">Du bist nicht angemeldet und kannst nur ansehen und exportieren. Zum Eintragen und Ändern bitte anmelden.</p><button class="btn primary" data-nav="login">Anmelden</button></div></section>`;
@@ -973,13 +973,13 @@ function benutzerHtml(){
     ${u.id!==cu.id?`<select data-urole="${u.id}" style="width:auto;min-height:34px;padding:4px 8px" aria-label="Rolle">${opts(Object.entries(ROLLEN),u.role)}</select><button class="btn sm" data-act="pwReset" data-id="${u.id}">Passwort</button><button class="btn sm" data-act="userAktiv" data-id="${u.id}">${u.active===false?'Aktivieren':'Deaktivieren'}</button>`:''}</div>`).join('')}</div>
     <div class="card pad stack" style="margin-top:8px"><div class="group-l">Person hinzufügen</div>
     <div class="grid2"><label class="f">Name<input id="u-name"></label><label class="f">Rolle<select id="u-role">${opts(Object.entries(ROLLEN),'gw')}</select></label></div>
-    <label class="f">Erstes Passwort<input id="u-pw" type="text" autocomplete="off" placeholder="mindestens 6 Zeichen – der Person mitteilen"></label>
+    <label class="f">Erstes Passwort<input id="u-pw" type="text" autocomplete="off" placeholder="4 bis 6 Zeichen – der Person mitteilen" maxlength="6"></label>
     <p class="err" id="u-err" hidden></p><button class="btn" data-act="userNeu">Hinzufügen</button></div></section>`:''}`;
 }
 function pwSheet(id,self){const u=S.users.find(x=>x.id===id);
   sheet(`${head(self?'Passwort ändern':'Neues Passwort für '+esc(u.name))}<div class="card pad stack">
   ${self?`<label class="f">Bisheriges Passwort<input id="p-old" type="password" autocomplete="current-password"></label>`:''}
-  <label class="f">Neues Passwort<input id="p-new" type="${self?'password':'text'}" autocomplete="new-password"></label>
+  <label class="f">Neues Passwort<input id="p-new" type="${self?'password':'text'}" autocomplete="new-password" placeholder="4 bis 6 Zeichen" maxlength="6"></label>
   <p class="err" id="p-err" hidden></p><button class="btn primary" data-act="pwOk" data-id="${id}" data-self="${self?1:''}">Speichern</button></div>`)}
 
 /* ================= Ereignisse ================= */
@@ -1038,10 +1038,10 @@ document.addEventListener('click',e=>{
     pwSelbst:()=>pwSheet(curUser().id,true), pwReset:()=>pwSheet(id,false),
     pwOk:async()=>{const u=S.users.find(x=>x.id===id),err=t=>{const e=$('#p-err');e.hidden=false;e.textContent=t};
       if(b.dataset.self&&await userHash(id,$('#p-old').value)!==u.pw)return err('Das bisherige Passwort stimmt nicht.');
-      const nw=$('#p-new').value;if(nw.length<6)return err('Mindestens 6 Zeichen.');
+      const nw=$('#p-new').value;if(nw.length<4||nw.length>6)return err('Das Passwort muss 4 bis 6 Zeichen lang sein.');
       u.pw=await userHash(id,nw);u.u=Date.now();save();closeSheet();toast('Passwort gespeichert')},
     userNeu:async()=>{const name=$('#u-name').value.trim(),pw=$('#u-pw').value,role=$('#u-role').value,err=t=>{const e=$('#u-err');e.hidden=false;e.textContent=t};
-      if(!name)return err('Bitte einen Namen eintragen.');if(pw.length<6)return err('Das Passwort braucht mindestens 6 Zeichen.');
+      if(!name)return err('Bitte einen Namen eintragen.');if(pw.length<4||pw.length>6)return err('Das Passwort muss 4 bis 6 Zeichen lang sein.');
       if(S.users.some(u=>u.name.toLowerCase()===name.toLowerCase()))return err('Diesen Namen gibt es schon.');
       const first=!usersOn(),u={id:uid(),name,role:first?'admin':role,pw:'',active:true,u:Date.now()};u.pw=await userHash(u.id,pw);S.users.push(u);
       if(first){try{localStorage.setItem(SESS,u.id)}catch(e){}touchAct()}save();render();toast(first?'Angelegt – du bist angemeldet':name+' hinzugefügt')},
