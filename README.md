@@ -42,6 +42,7 @@ App öffnen → **Mehr → Gemeinsame Daten** → Zugangsschlüssel + Atemschutz
 Das macht der Admin oder er gibt beides an die Person weiter. Danach meldet sich jede Person mit **Namen und eigenem Passwort** an.
 Auf den Homescreen legen: iPhone *Teilen → Zum Home-Bildschirm*, Android *Menü → App installieren*.
 
+- **Automatisch abmelden:** nach 30 Minuten ohne Bedienung. Ein angefangener Tausch bleibt gespeichert.
 - **Passwort vergessen:** Admin → Mehr → Benutzer → „Passwort“.
 - **Person ausgeschieden:** Admin → „Deaktivieren“. Ihre Einträge bleiben mit Namen erhalten.
 - **Handy verloren:** Zugangsschlüssel auf GitHub löschen, neuen erzeugen, übrige Geräte neu verbinden.

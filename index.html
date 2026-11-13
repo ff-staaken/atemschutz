@@ -935,6 +935,14 @@ const me=()=>curUser()?.name||S.settings.bearbeiter||'';
 const isAdmin=()=>!usersOn()||curUser()?.role==='admin';
 const userHash=(id,pw)=>sha(`user:${id}:${pw}`);
 function needLogin(){return usersOn()&&!curUser()}
+// Automatisch abmelden nach 30 Minuten ohne Bedienung (gilt auch nach Neustart der App)
+const IDLE_MIN=30, ACT='atemschutz-logbuch-act';
+function touchAct(){try{localStorage.setItem(ACT,String(Date.now()))}catch(e){}}
+function idleCheck(){if(!curUser())return;let t=0;try{t=+localStorage.getItem(ACT)||0}catch(e){}
+  if(t&&Date.now()-t>IDLE_MIN*60000){try{localStorage.removeItem(SESS)}catch(e){}closeSheet();I=null;ui.loginSel=null;render();toast(`Nach ${IDLE_MIN} Minuten ohne Bedienung abgemeldet`)}}
+let lastTouch=0;['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev,()=>{if(Date.now()-lastTouch>15000){lastTouch=Date.now();if(curUser())touchAct()}},true));
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')idleCheck()});
+setInterval(idleCheck,30000);
 VIEWS.login=()=>{const us=(S.users||[]).filter(u=>u.active!==false).sort((a,b)=>a.name.localeCompare(b.name,'de')),sel=us.find(u=>u.id===ui.loginSel);
   return`<div style="text-align:center;padding-top:12px"><img class="biglogo" src="${BRAND.logo}" alt="Wappen FF Staaken"><div style="display:flex;justify-content:center;margin-top:10px">${$('.pa').outerHTML.replace('class="pa"','class="pa" style="width:min(300px,80%)"')}</div><h3 style="margin-top:10px">Anmelden</h3><p class="hint">Wähle deinen Namen.</p></div>
   ${sel?`<div class="card pad stack"><b>${esc(sel.name)}</b><label class="f">Passwort<input id="l-pw" type="password" autocomplete="current-password"></label>
@@ -952,6 +960,7 @@ function benutzerHtml(){
     <button class="btn primary" data-act="userNeu">Als Admin anlegen und anmelden</button></div></section>`;
   return`<section><h2>Angemeldet</h2><div class="card pad stack">
     <p style="margin:0"><b>${esc(cu.name)}</b> · ${ROLLEN[cu.role]}</p>
+    <p class="hint">Nach ${IDLE_MIN} Minuten ohne Bedienung meldet die App automatisch ab. Ein angefangener Tausch bleibt gespeichert.</p>
     <div class="actions"><button class="btn" data-act="pwSelbst">Passwort ändern</button><button class="btn" data-act="logout">Abmelden</button></div></div></section>
   ${isAdmin()?`<section><h2>Benutzer · ${us.filter(u=>u.active!==false).length}</h2><div class="list">${us.map(u=>`<div class="item"><span class="main"><span class="t1">${esc(u.name)}${u.active===false?' <span class="pill muted-p">deaktiviert</span>':''}</span><span class="t2">${ROLLEN[u.role]}${u.lastLogin?' · zuletzt '+fmtDT(new Date(u.lastLogin).toISOString().slice(0,16)):''}</span></span>
     ${u.id!==cu.id?`<select data-urole="${u.id}" style="width:auto;min-height:34px;padding:4px 8px" aria-label="Rolle">${opts(Object.entries(ROLLEN),u.role)}</select><button class="btn sm" data-act="pwReset" data-id="${u.id}">Passwort</button><button class="btn sm" data-act="userAktiv" data-id="${u.id}">${u.active===false?'Aktivieren':'Deaktivieren'}</button>`:''}</div>`).join('')}</div>
@@ -1012,7 +1021,7 @@ document.addEventListener('click',e=>{
     loginSel:()=>{ui.loginSel=id;render();setTimeout(()=>$('#l-pw')?.focus(),50)}, loginBack:()=>{ui.loginSel=null;render()},
     loginOk:async()=>{const u=S.users.find(x=>x.id===ui.loginSel),pw=$('#l-pw').value;
       if(!u||await userHash(u.id,pw)!==u.pw){const e=$('#l-err');e.hidden=false;e.textContent='Passwort falsch.';$('#l-pw').value='';return}
-      try{localStorage.setItem(SESS,u.id)}catch(e){}u.lastLogin=Date.now();u.u=Date.now();ui.loginSel=null;save();go('start');toast('Hallo '+u.name.split(' ')[0]+'!')},
+      try{localStorage.setItem(SESS,u.id)}catch(e){}touchAct();u.lastLogin=Date.now();u.u=Date.now();ui.loginSel=null;save();go('start');toast('Hallo '+u.name.split(' ')[0]+'!')},
     logout:()=>{try{localStorage.removeItem(SESS)}catch(e){}T=null;I=null;render()},
     pwSelbst:()=>pwSheet(curUser().id,true), pwReset:()=>pwSheet(id,false),
     pwOk:async()=>{const u=S.users.find(x=>x.id===id),err=t=>{const e=$('#p-err');e.hidden=false;e.textContent=t};
@@ -1023,7 +1032,7 @@ document.addEventListener('click',e=>{
       if(!name)return err('Bitte einen Namen eintragen.');if(pw.length<6)return err('Das Passwort braucht mindestens 6 Zeichen.');
       if(S.users.some(u=>u.name.toLowerCase()===name.toLowerCase()))return err('Diesen Namen gibt es schon.');
       const first=!usersOn(),u={id:uid(),name,role:first?'admin':role,pw:'',active:true,u:Date.now()};u.pw=await userHash(u.id,pw);S.users.push(u);
-      if(first){try{localStorage.setItem(SESS,u.id)}catch(e){}}save();render();toast(first?'Angelegt – du bist angemeldet':name+' hinzugefügt')},
+      if(first){try{localStorage.setItem(SESS,u.id)}catch(e){}touchAct()}save();render();toast(first?'Angelegt – du bist angemeldet':name+' hinzugefügt')},
     userAktiv:()=>{const u=S.users.find(x=>x.id===id);if(u.active!==false&&u.role==='admin'&&S.users.filter(x=>x.role==='admin'&&x.active!==false).length<2){toast('Mindestens ein Admin muss aktiv bleiben.');return}
       u.active=u.active===false;u.u=Date.now();save();render()},
     trennen:()=>{if(confirm('Gerät trennen? Die Daten bleiben auf diesem Handy, werden aber nicht mehr abgeglichen.')){setCfg({repo:cfg().repo});DEK=null;render()}},
@@ -1060,7 +1069,7 @@ document.addEventListener('change',e=>{const t=e.target;
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet()});
 
-render();
+idleCheck();render();
 if(verbunden())sync();
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
