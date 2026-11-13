@@ -336,11 +336,12 @@ const mtags=list=>`<div class="mline">${list.map(p=>`<span class="mtag ${dueCls(
 let view='start', ui={ort:null};
 function go(v,o){view=v;if(o)Object.assign(ui,o);render();window.scrollTo(0,0)}
 function render(){
-  if(needLogin()){view='login';closeSheet()}else if(view==='login')view='start';
+  if(view==='login'&&!needLogin())view='start';
+  if(['tauschNeu','inventurNeu'].includes(view)&&!canEdit())view='login';
   $('#tabs').hidden=view==='login';
   const tab={tauschNeu:'tausch',inventurNeu:'inventur',ort:'fahrzeuge'}[view]||view;
   $$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.nav===tab));
-  const w=$('#whob'),cu=curUser();w.hidden=!cu||view==='login';if(cu){w.textContent=cu.name.split(' ')[0];w.title=cu.name}showSync();
+  const w=$('#whob'),cu=curUser();w.hidden=!usersOn()||view==='login';w.textContent=cu?cu.name.split(' ')[0]:'Anmelden';w.title=cu?cu.name:'Zum Ändern anmelden';w.dataset.nav=cu?'mehr':'login';showSync();
   if(view==='ort'&&!ortById(ui.ort))view='fahrzeuge';
   $('#main').innerHTML=VIEWS[view]();
   if(view==='tauschNeu')initTausch();
@@ -362,6 +363,7 @@ VIEWS.start=()=>{
   return`
   <div class="hello"><div class="eyebrow">${new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'})}</div><h3>Hi${vn?' '+esc(vn):''}!</h3>
     ${lv?`<p class="hint" style="margin-top:4px">Letzter Tausch: <b>${esc(lv.ortName)}</b> · ${relZeit(lv.datum)}${lv.von?' · '+esc(lv.von):''}</p>`:''}</div>
+  ${needLogin()?`<div class="banner info"><span class="grow">Du bist nicht angemeldet und kannst nur ansehen. Zum Tauschen, Eintragen und Ändern bitte anmelden.</span><button class="btn sm" data-nav="login">Anmelden</button></div>`:''}
   ${S.settings.beispiel?`<div class="banner info"><span class="grow">Du siehst <b>Beispieldaten</b>. Unter <b>Mehr</b> verbindest du die App mit den gemeinsamen Daten oder lädst eure Inventarliste.</span><button class="btn sm" data-nav="mehr">Zu Mehr</button></div>`:''}
   ${!verbunden()&&!S.settings.beispiel&&S.geraete.length&&(lbDays===null||lbDays>14)?`<div class="banner warn"><span class="grow">${lb?`Letzte Datensicherung vor ${lbDays} Tagen.`:'Noch keine Datensicherung erstellt.'} Die Daten liegen nur auf diesem Gerät.</span><button class="btn sm" data-act="backup">Jetzt sichern</button></div>`:''}
   ${verbunden()&&syncInfo.s==='err'?`<div class="banner warn"><span class="grow">Synchronisierung fehlgeschlagen: ${esc(syncInfo.t)} Deine Änderungen sind auf dem Handy gespeichert.</span><button class="btn sm" data-act="syncJetzt">Erneut versuchen</button></div>`:''}
@@ -386,15 +388,15 @@ VIEWS.ort=()=>{const o=ortById(ui.ort),gs=geraeteAn(o.id),best=bestand(o.id);
   const pa=gs.filter(g=>g.kat==='PA'),sonst=gs.filter(g=>g.kat!=='PA');
   return`<div class="row"><button class="btn sm" data-nav="fahrzeuge">‹ Zurück</button><span class="grow"></span><button class="btn sm" data-act="ortEdit" data-id="${o.id}">Bearbeiten</button></div>
   <div><h3>${esc(o.name)} <span style="color:var(--fg-2)">${esc(o.bnr)}</span></h3>${o.rufname?`<p class="hint" style="margin-top:2px">Funkrufname: ${esc(o.rufname)}</p>`:''}</div>
-  ${o.art==='fahrzeug'?`<label class="f">Fahrzeugstatus<select id="o-status" data-id="${o.id}">${opts([['','– offen –'],...Object.keys(FZST)],o.status)}</select></label>`:''}
+  ${o.art==='fahrzeug'?`<label class="f">Fahrzeugstatus<select id="o-status" data-id="${o.id}" ${canEdit()?'':'disabled'}>${opts([['','– offen –'],...Object.keys(FZST)],o.status)}</select></label>`:''}
   <section><h2>Pressluftatmer · ${pa.length}</h2>${pa.length?`<div class="list">${pa.map(g=>devRow(g)).join('')}</div>`:`<div class="list empty">Keine Pressluftatmer.</div>`}</section>
   <section><h2>Fluchthauben, Masken, Filter</h2><div class="list">
     ${MK.map(k=>{const l=best.filter(p=>p.kat===k),n=l.reduce((a,p)=>a+p.n,0);return`<button class="kv item" style="display:grid" data-act="buchen" data-ort="${o.id}" data-kat="${k}"><span>${KAT[k]} · ${n}</span>${l.length?mtags(l):'<span class="hint">–</span>'}</button>`}).join('')}
   </div><p class="hint" style="margin-top:6px">Antippen, um Zugang, Abgang oder Umlagerung zu buchen.</p></section>
   <section><h2>CO-Warner, Messgeräte, Sonstiges · ${sonst.length}</h2>${sonst.length?`<div class="list">${sonst.map(g=>devRow(g)).join('')}</div>`:`<div class="list empty">Keine Geräte.</div>`}</section>
-  <div class="actions"><button class="btn" data-act="neuGeraet" data-ort="${o.id}">+ Gerät</button><button class="btn" data-act="buchen" data-ort="${o.id}">+ Bestand</button></div>
+  ${canEdit()?'':'<p class="hint">Zum Ändern bitte anmelden.</p>'}${canEdit()?`<div class="actions"><button class="btn" data-act="neuGeraet" data-ort="${o.id}">+ Gerät</button><button class="btn" data-act="buchen" data-ort="${o.id}">+ Bestand</button></div>
   ${o.id===POOL?'<p class="hint">Neue Geräte von der Atemschutzwerkstatt hier mit „+ Gerät“ anlegen, Masken, Hauben und Filter mit „+ Bestand“.</p>':''}
-  ${o.art==='fahrzeug'?`<div class="actions"><button class="btn primary" data-act="tauschFuer" data-id="${o.id}">Tausch für ${esc(o.name)}</button><button class="btn" data-act="inventurFuer" data-id="${o.id}">Inventur</button></div>`:''}`;
+  ${o.art==='fahrzeug'?`<div class="actions"><button class="btn primary" data-act="tauschFuer" data-id="${o.id}">Tausch für ${esc(o.name)}</button><button class="btn" data-act="inventurFuer" data-id="${o.id}">Inventur</button></div>`:''}`:''}`;
 };
 
 /* ---------- Tauschvorgänge ---------- */
@@ -579,7 +581,7 @@ VIEWS.mehr=()=>`
   ${benutzerHtml()}
   <section><h2>Datensicherung & Import</h2><div class="card pad stack">
     <p class="hint">${verbunden()?'Die Daten liegen zusätzlich im GitHub-Repository.':'Die Daten liegen nur in diesem Browser. Sichere sie regelmäßig.'} ${S.settings.lastBackup?`Letzte Sicherung: <span class="mono">${fmtDT(S.settings.lastBackup)}</span>`:''}</p>
-    <div class="actions"><button class="btn" data-act="backup">Sicherung speichern</button>${isAdmin()?'<label class="btn" for="restore">Datei laden</label>':''}</div>
+    <div class="actions">${canEdit()?'<button class="btn" data-act="backup">Sicherung speichern</button>':''}${isAdmin()?'<label class="btn" for="restore">Datei laden</label>':''}</div>
     <input type="file" id="restore" accept=".json,application/json" hidden>
     <p class="hint">„Datei laden“ übernimmt eine Sicherung oder die vorbereitete Startdatei mit eurer Inventarliste. ${verbunden()?'Sie wird mit den gemeinsamen Daten zusammengeführt.':'Die Daten auf diesem Handy werden ersetzt.'}</p>
   </div></section>
@@ -714,7 +716,7 @@ const head=t=>`<div class="sheet-h"><h3>${t}</h3><button class="x" data-act="clo
 function openGeraet(id,ort){
   const neu=!id;const g=neu?{kat:'PA',bez:'',nr:'',faellig:'',ort:ort||POOL,status:'bereit',notiz:'',historie:[]}:byId(id);
   sheet(`${head(neu?'Neues Gerät':esc(devLabel(g)))}
-  <form id="gform" class="stack">
+  <form id="gform" class="stack"><fieldset ${canEdit()?'':'disabled'} class="stack" style="border:0;padding:0;margin:0;min-width:0">
     <div class="grid2">
       <label class="f">Art<select id="g-kat">${opts(GK.map(k=>[k,KAT1[k]]),g.kat)}</select></label>
       <label class="f" id="g-bezl">Bezeichnung<input id="g-bez" value="${esc(g.bez)}" placeholder="z. B. TITAN, X-AM, ANT" list="dl-bez"></label>
@@ -728,10 +730,10 @@ function openGeraet(id,ort){
     <p class="err" id="g-err" hidden></p>
     ${!neu&&g.status!=='bereit'&&g.status!=='ausgesondert'&&g.status!=='abgegeben'?`<button type="button" class="btn" data-act="geprueft" data-id="${g.id}">Geprüft → einsatzbereit</button>`:''}
     <div class="actions"><button type="submit" class="btn primary">Speichern</button>${neu?`<button type="button" class="btn" data-act="close">Abbrechen</button>`:`<button type="button" class="btn danger" data-act="geraetLoeschen" data-id="${g.id}">Löschen</button>`}</div>
-  </form>
+  </fieldset>${canEdit()?'':'<p class="hint">Zum Ändern bitte anmelden.</p>'}</form>
   ${!neu?`<section><h2>Verlauf</h2><ul class="hist">${(g.historie||[]).slice(0,40).map(h=>`<li><span class="d">${fmtDT(h.d)}</span><span>${esc(h.t)}${h.n?` <span class="hint">· ${esc(h.n)}</span>`:''}</span></li>`).join('')||'<li class="hint">Kein Verlauf</li>'}</ul></section>`:''}`);
   const k=$('#g-kat'),upd=()=>{$('#g-bezl').hidden=k.value==='PA'||k.value==='CO';$('#g-fl').textContent=k.value==='PA'?'TÜV fällig':'Prüfung fällig'};upd();k.addEventListener('change',upd);
-  $('#gform').addEventListener('submit',e=>{e.preventDefault();const err=t=>{const x=$('#g-err');x.hidden=false;x.textContent=t};
+  $('#gform').addEventListener('submit',e=>{e.preventDefault();if(!canEdit())return needAuth();const err=t=>{const x=$('#g-err');x.hidden=false;x.textContent=t};
     const d={kat:k.value,bez:$('#g-bez').value.trim(),nr:$('#g-nr').value.trim(),faellig:parseM($('#g-f').value),ort:$('#g-ort').value,status:$('#g-status').value,notiz:$('#g-notiz').value};
     if(d.kat==='PA'||d.kat==='CO')d.bez='';
     if(d.faellig===null)return err('Fälligkeit bitte als MM/JJ eingeben, z. B. 11/26.');
@@ -918,7 +920,7 @@ async function verbinden(){
       hdr={salt:b64(salt),wrap:await seal(await kek(pw,salt),raw)}}
     setCfg({repo,token,dek:b64(raw),salt:hdr.salt,wrap:hdr.wrap});DEK=null;ui.neuAnlegen=false;
     if(S.settings.beispiel){S=emptyState()}
-    S.pending=true;saveLocal();await sync(true);if(syncInfo.s==='err')throw new Error(syncInfo.t);go(usersOn()&&!curUser()?'start':'mehr')}
+    S.pending=true;saveLocal();await sync(true);if(syncInfo.s==='err')throw new Error(syncInfo.t);go(needLogin()?'login':'mehr')}
   catch(e){setCfg({repo});DEK=null;msg(e.message);showSync()}
 }
 addEventListener('online',()=>sync());
@@ -933,13 +935,15 @@ const SESS='atemschutz-logbuch-user';
 function curUser(){let id;try{id=localStorage.getItem(SESS)}catch(e){}const u=(S.users||[]).find(x=>x.id===id&&x.active!==false);return u||null}
 const me=()=>curUser()?.name||S.settings.bearbeiter||'';
 const isAdmin=()=>!usersOn()||curUser()?.role==='admin';
+const canEdit=()=>!usersOn()||!!curUser();
+function needAuth(){closeSheet();toast('Zum Ändern bitte anmelden');go('login')}
 const userHash=(id,pw)=>sha(`user:${id}:${pw}`);
 function needLogin(){return usersOn()&&!curUser()}
 // Automatisch abmelden nach 30 Minuten ohne Bedienung (gilt auch nach Neustart der App)
 const IDLE_MIN=30, ACT='atemschutz-logbuch-act';
 function touchAct(){try{localStorage.setItem(ACT,String(Date.now()))}catch(e){}}
 function idleCheck(){if(!curUser())return;let t=0;try{t=+localStorage.getItem(ACT)||0}catch(e){}
-  if(t&&Date.now()-t>IDLE_MIN*60000){try{localStorage.removeItem(SESS)}catch(e){}closeSheet();I=null;ui.loginSel=null;render();toast(`Nach ${IDLE_MIN} Minuten ohne Bedienung abgemeldet`)}}
+  if(t&&Date.now()-t>IDLE_MIN*60000){try{localStorage.removeItem(SESS)}catch(e){}closeSheet();I=null;ui.loginSel=null;if(['tauschNeu','inventurNeu','ort'].includes(view))view='start';render();toast(`Nach ${IDLE_MIN} Minuten ohne Bedienung abgemeldet`)}}
 let lastTouch=0;['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev,()=>{if(Date.now()-lastTouch>15000){lastTouch=Date.now();if(curUser())touchAct()}},true));
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')idleCheck()});
 setInterval(idleCheck,30000);
@@ -948,6 +952,7 @@ VIEWS.login=()=>{const us=(S.users||[]).filter(u=>u.active!==false).sort((a,b)=>
   ${sel?`<div class="card pad stack"><b>${esc(sel.name)}</b><label class="f">Passwort<input id="l-pw" type="password" autocomplete="current-password"></label>
     <p class="err" id="l-err" hidden></p><div class="actions"><button class="btn primary" data-act="loginOk">Anmelden</button><button class="btn" data-act="loginBack">Anderer Name</button></div></div>`
   :`<div class="list">${us.map(u=>`<button class="item" data-act="loginSel" data-id="${u.id}"><span class="main"><span class="t1">${esc(u.name)}</span><span class="t2">${ROLLEN[u.role]}</span></span></button>`).join('')}</div>`}
+  <button class="btn block" data-nav="start">Ohne Anmeldung nur ansehen</button>
   <p class="hint" style="text-align:center">Passwort vergessen? Ein Admin kann es unter Mehr → Benutzer neu setzen.</p>
   <p class="hint" style="text-align:center"><a href="impressum.html">Impressum</a> · <a href="datenschutz.html">Datenschutz</a></p>`};
 function benutzerHtml(){
@@ -958,6 +963,7 @@ function benutzerHtml(){
     <label class="f">Dein Passwort<input id="u-pw" type="password" autocomplete="new-password" placeholder="mindestens 6 Zeichen"></label>
     <input type="hidden" id="u-role" value="admin"><p class="err" id="u-err" hidden></p>
     <button class="btn primary" data-act="userNeu">Als Admin anlegen und anmelden</button></div></section>`;
+  if(!cu)return`<section><h2>Anmeldung</h2><div class="card pad stack"><p class="hint">Du bist nicht angemeldet und kannst nur ansehen und exportieren. Zum Eintragen und Ändern bitte anmelden.</p><button class="btn primary" data-nav="login">Anmelden</button></div></section>`;
   return`<section><h2>Angemeldet</h2><div class="card pad stack">
     <p style="margin:0"><b>${esc(cu.name)}</b> · ${ROLLEN[cu.role]}</p>
     <p class="hint">Nach ${IDLE_MIN} Minuten ohne Bedienung meldet die App automatisch ab. Ein angefangener Tausch bleibt gespeichert.</p>
@@ -976,9 +982,14 @@ function pwSheet(id,self){const u=S.users.find(x=>x.id===id);
   <p class="err" id="p-err" hidden></p><button class="btn primary" data-act="pwOk" data-id="${id}" data-self="${self?1:''}">Speichern</button></div>`)}
 
 /* ================= Ereignisse ================= */
+// Alles, was etwas ändert oder einträgt, geht nur mit Anmeldung (sobald Benutzer angelegt sind)
+const NUR_ANGEMELDET=new Set(['neuGeraet','ortNeu','ortEdit','ortOk','ortLoeschen','buchen','buchenOk','geprueft','gepruefOk','geraetLoeschen','tauschFuer','inventurFuer',
+  'pick1','pick2','st','tauschSpeichern','tauschVerwerfen','vorgangLoeschen','inventurLoeschen','invToggle','invExtra','invAlle','ist','invNeu','invNeuWeg','inventurSpeichern',
+  'backup','pwSelbst','pwReset','pwOk','userNeu','userAktiv','trennen','beispielWeg','beispielLaden','allesWeg','sigClear']);
 document.addEventListener('click',e=>{
-  const nav=e.target.closest('[data-nav]');if(nav){closeSheet();go(nav.dataset.nav);return}
+  const nav=e.target.closest('[data-nav]');if(nav){if(['tauschNeu','inventurNeu'].includes(nav.dataset.nav)&&!canEdit())return needAuth();closeSheet();go(nav.dataset.nav);return}
   const b=e.target.closest('[data-act]');if(!b||b.disabled)return;const id=b.dataset.id,a=b.dataset.act;
+  if(NUR_ANGEMELDET.has(a)&&!canEdit()){e.preventDefault();return needAuth()}
   const A={
     close:closeSheet, geraet:()=>openGeraet(id), neuGeraet:()=>openGeraet(null,b.dataset.ort),
     ort:()=>{closeSheet();go('ort',{ort:id})}, ortNeu:()=>openOrt(null), ortEdit:()=>openOrt(id),
@@ -1051,6 +1062,7 @@ document.addEventListener('input',e=>{const t=e.target;
   else if(t.id==='i-bearbeiter'||t.id==='i-bemerkung'){I[t.id.slice(2)]=t.value}
 });
 document.addEventListener('change',e=>{const t=e.target;
+  if(['o-status','s-feuerwehr','s-vorlauf','restore','i-ort','i-status','t-ort','t-quelle'].includes(t.id)||t.dataset.urole){if(!canEdit()){needAuth();return}}
   if(t.id==='t-ort'){T.ort=t.value;if(T.quelle===T.ort)T.quelle=wache().find(o=>o.id!==T.ort)?.id||POOL;T.raus={g:[],m:{}};T.rein={g:[],m:{}};render()}
   else if(t.id==='t-quelle'){T.quelle=t.value;T.rein={g:[],m:{}};updTausch()}
   else if(t.id==='i-ort'){I=newInv(t.value);render()}

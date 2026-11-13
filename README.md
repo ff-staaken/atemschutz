@@ -22,6 +22,7 @@ Läuft im Browser am Handy, auch offline.
 |---|---|
 | **Admin** | alles, dazu Benutzer verwalten, Einstellungen, Datei laden, Gerät trennen |
 | **Gerätewart** | Tausch, Inventur, Bestand und Geräte pflegen, Exporte |
+| *nicht angemeldet* | nur ansehen und exportieren (Excel, PDF) |
 
 ### 1. Zugangsschlüssel (einmal, durch den Admin)
 GitHub → *Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token*
