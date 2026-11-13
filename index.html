@@ -52,13 +52,12 @@ button,input,select,textarea{font:inherit;color:inherit}
 .app{display:flex;flex-direction:column;min-height:100%}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--navy)}
 header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--navy);color:var(--navy-ink)}
-.hrow{display:flex;align-items:center;gap:10px;padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));max-width:760px;margin:0 auto}
-.hrow .logo{height:46px;width:auto;flex:none;display:block}
-.brand{flex:1;min-width:0}
-.brand b{display:block;font:700 1.55rem/1 var(--display);text-transform:uppercase;letter-spacing:.02em;white-space:nowrap}
-.brand small{display:block;color:var(--flame);font-weight:600;font-size:.7rem;letter-spacing:.07em;text-transform:uppercase;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hright{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex:none;max-width:45%}
-.stripe{height:6px;background:repeating-linear-gradient(-45deg,var(--accent) 0 12px,var(--flame) 12px 24px)}
+.hrow{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:6px max(16px,env(safe-area-inset-right,0px)) 6px max(16px,env(safe-area-inset-left,0px));max-width:760px;margin:0 auto}
+.hrow .logo{height:48px;width:auto;display:block;justify-self:start}
+.hpa{margin:0;line-height:0}
+.pa{display:block;width:clamp(150px,46vw,250px);height:auto}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.hright{display:flex;flex-direction:column;align-items:flex-end;gap:5px;min-width:0;justify-self:end;max-width:100%}
 .whob{background:var(--navy-2);color:var(--navy-ink);border:1px solid var(--navy-muted);border-radius:999px;padding:4px 11px;font-weight:600;font-size:.8rem;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .syncb{background:transparent;color:var(--navy-muted);border:0;padding:0;font-size:.75rem;font-weight:600;display:inline-flex;gap:6px;align-items:center;cursor:pointer;white-space:nowrap}
 .syncb i{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block}
@@ -190,10 +189,22 @@ main a{color:var(--accent)}
   <header class="top">
     <div class="hrow">
       <img class="logo" src="logo.png" alt="Wappen FF Staaken">
-      <div class="brand"><b id="title">Atemschutz</b><small id="unit"></small></div>
+      <h1 class="hpa"><span class="sr">Atemschutz – FF Berlin-Staaken</span><svg class="pa" viewBox="0 0 260 74" role="img" aria-label="Atemschutz" xmlns="http://www.w3.org/2000/svg">
+        <rect x="22" y="7" width="178" height="60" rx="7" fill="#4b5563" stroke="#0e1014" stroke-width="2.5"/>
+        <path d="M232 49 C238 72 150 72 62 67" fill="none" stroke="#0e1014" stroke-width="3.5" stroke-linecap="round"/>
+        <circle cx="56" cy="66" r="7" fill="#f3f4f6" stroke="#0e1014" stroke-width="2.5"/><path d="M56 66 L59 62" stroke="#d2161e" stroke-width="2" stroke-linecap="round"/>
+        <rect x="12" y="14" width="204" height="46" rx="23" fill="#f3f4f6" stroke="#0e1014" stroke-width="3"/>
+        <path d="M190 15.5 Q214 18 214 37 Q214 56 190 58.5" fill="#0e1014"/><path d="M196 17 Q210 22 210 37 Q210 52 196 57 Z" fill="#ffffff"/>
+        <path d="M36 21 Q110 17 184 21" fill="none" stroke="#c7cad1" stroke-width="2"/>
+        <rect x="21" y="11" width="9" height="52" rx="2" fill="#d2161e" stroke="#0e1014" stroke-width="2"/>
+        <rect x="177" y="11" width="9" height="52" rx="2" fill="#d2161e" stroke="#0e1014" stroke-width="2"/>
+        <rect x="215" y="30" width="9" height="14" fill="#9ca3af" stroke="#0e1014" stroke-width="2"/>
+        <rect x="223" y="25" width="15" height="24" rx="2" fill="#9ca3af" stroke="#0e1014" stroke-width="2"/>
+        <ellipse cx="245" cy="37" rx="6" ry="15" fill="#1f2937" stroke="#0e1014" stroke-width="2"/><path d="M245 24 V50" stroke="#4b5563" stroke-width="1.5"/>
+        <text x="104" y="46" text-anchor="middle" font-family="'Barlow Condensed','Arial Narrow',Arial,sans-serif" font-weight="700" font-size="25" letter-spacing="1.5" fill="#0e1014">ATEMSCHUTZ</text>
+      </svg></h1>
       <div class="hright"><button class="whob" id="whob" data-nav="mehr" hidden></button><button class="syncb" id="syncb" data-act="syncJetzt" hidden><i></i><span></span></button></div>
     </div>
-    <div class="stripe"></div>
   </header>
   <main id="main"></main>
   <nav class="tabs" id="tabs">
@@ -329,7 +340,7 @@ function render(){
   $('#tabs').hidden=view==='login';
   const tab={tauschNeu:'tausch',inventurNeu:'inventur',ort:'fahrzeuge'}[view]||view;
   $$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.nav===tab));
-  $('#unit').textContent=BRAND.einheit;const w=$('#whob'),cu=curUser();w.hidden=!cu||view==='login';if(cu)w.textContent=cu.name;showSync();
+  const w=$('#whob'),cu=curUser();w.hidden=!cu||view==='login';if(cu){w.textContent=cu.name.split(' ')[0];w.title=cu.name}showSync();
   if(view==='ort'&&!ortById(ui.ort))view='fahrzeuge';
   $('#main').innerHTML=VIEWS[view]();
   if(view==='tauschNeu')initTausch();
@@ -925,7 +936,7 @@ const isAdmin=()=>!usersOn()||curUser()?.role==='admin';
 const userHash=(id,pw)=>sha(`user:${id}:${pw}`);
 function needLogin(){return usersOn()&&!curUser()}
 VIEWS.login=()=>{const us=(S.users||[]).filter(u=>u.active!==false).sort((a,b)=>a.name.localeCompare(b.name,'de')),sel=us.find(u=>u.id===ui.loginSel);
-  return`<div style="text-align:center;padding-top:12px"><img class="biglogo" src="${BRAND.logo}" alt="Wappen FF Staaken"><h3 style="margin-top:10px">Anmelden</h3><p class="hint">Wähle deinen Namen.</p></div>
+  return`<div style="text-align:center;padding-top:12px"><img class="biglogo" src="${BRAND.logo}" alt="Wappen FF Staaken"><div style="display:flex;justify-content:center;margin-top:10px">${$('.pa').outerHTML.replace('class="pa"','class="pa" style="width:min(300px,80%)"')}</div><h3 style="margin-top:10px">Anmelden</h3><p class="hint">Wähle deinen Namen.</p></div>
   ${sel?`<div class="card pad stack"><b>${esc(sel.name)}</b><label class="f">Passwort<input id="l-pw" type="password" autocomplete="current-password"></label>
     <p class="err" id="l-err" hidden></p><div class="actions"><button class="btn primary" data-act="loginOk">Anmelden</button><button class="btn" data-act="loginBack">Anderer Name</button></div></div>`
   :`<div class="list">${us.map(u=>`<button class="item" data-act="loginSel" data-id="${u.id}"><span class="main"><span class="t1">${esc(u.name)}</span><span class="t2">${ROLLEN[u.role]}</span></span></button>`).join('')}</div>`}
