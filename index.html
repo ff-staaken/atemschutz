@@ -3,53 +3,76 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#a3231b">
+<meta name="theme-color" content="#1b2756">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Atemschutz">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Atemschutz-Logbuch</title>
 <style>
-/* Layout: App-Shell – Kopfzeile, scrollender Inhalt, untere Navigation (Daumenzone) */
+@font-face{font-family:"Barlow";font-weight:400;font-display:swap;src:url(fonts/barlow-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"Barlow";font-weight:500;font-display:swap;src:url(fonts/barlow-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"Barlow";font-weight:600;font-display:swap;src:url(fonts/barlow-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"Barlow";font-weight:700;font-display:swap;src:url(fonts/barlow-latin-700-normal.woff2) format("woff2")}
+@font-face{font-family:"Barlow Condensed";font-weight:600;font-display:swap;src:url(fonts/barlow-condensed-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"Barlow Condensed";font-weight:700;font-display:swap;src:url(fonts/barlow-condensed-latin-700-normal.woff2) format("woff2")}
+/* Layout: App-Shell im Stil der Kantine – dunkelblaue Kopfzeile mit Wappen und Warnstreifen, Inhalt, untere Navigation (Daumenzone) */
 :root{
-  --bg:#f5f3f2; --surface:#ffffff; --surface-2:#efebe9; --line:#ddd6d3;
-  --fg:#1f1a19; --fg-2:#6b605d; --accent:#a3231b; --accent-fg:#ffffff; --accent-soft:#f6e3e1;
-  --ok:#1f7a3f; --ok-soft:#e1f2e6; --warn:#a15c00; --warn-soft:#fbecd4;
-  --crit:#b3261e; --crit-soft:#f9dedb; --info:#1d5f9e; --info-soft:#dfeaf6;
-  --font:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --bg:#eceef1; --surface:#ffffff; --surface-2:#f5f6f8; --line:#d6dbe1;
+  --fg:#15191e; --fg-2:#5b6570; --accent:#d2161e; --accent-fg:#ffffff; --accent-soft:#fbe7e8;
+  --navy:#1b2756; --navy-2:#24336b; --navy-ink:#ffffff; --navy-muted:#c3cbe6; --flame:#f7b21b;
+  --ok:#1d7a4b; --ok-soft:#e3f3ea; --warn:#8f5400; --warn-soft:#fdf0d9;
+  --crit:#b0151b; --crit-soft:#fbe7e8; --info:#1f4f8a; --info-soft:#e4ecf7;
+  --font:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
   --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
-  --r:12px; color-scheme:light;
+  --r:10px; color-scheme:light;
 }
-@media (prefers-color-scheme:dark){:root{
-  --bg:#141111; --surface:#1e1a19; --surface-2:#2a2423; --line:#3a3331;
-  --fg:#f1eceb; --fg-2:#aa9f9c; --accent:#e5534a; --accent-fg:#1a0705; --accent-soft:#3d1f1c;
-  --ok:#5fc882; --ok-soft:#183324; --warn:#f0a94a; --warn-soft:#3a2a12;
-  --crit:#f07067; --crit-soft:#3f1c19; --info:#7db4ec; --info-soft:#172b40; color-scheme:dark;
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111417; --surface:#1a1e23; --surface-2:#22272d; --line:#2e353d;
+  --fg:#edf0f3; --fg-2:#9aa4af; --accent:#e6363d; --accent-fg:#ffffff; --accent-soft:#3a1c1e;
+  --navy:#111836; --navy-2:#1a2449; --navy-ink:#ffffff; --navy-muted:#a9b3d6; --flame:#f7b21b;
+  --ok:#4fc58a; --ok-soft:#173326; --warn:#f0b04a; --warn-soft:#3a2b12;
+  --crit:#ff6b70; --crit-soft:#3a1c1e; --info:#8fb6ec; --info-soft:#1b2a3f; color-scheme:dark;
 }}
+:root[data-theme="dark"]{
+  --bg:#111417; --surface:#1a1e23; --surface-2:#22272d; --line:#2e353d;
+  --fg:#edf0f3; --fg-2:#9aa4af; --accent:#e6363d; --accent-fg:#ffffff; --accent-soft:#3a1c1e;
+  --navy:#111836; --navy-2:#1a2449; --navy-ink:#ffffff; --navy-muted:#a9b3d6; --flame:#f7b21b;
+  --ok:#4fc58a; --ok-soft:#173326; --warn:#f0b04a; --warn-soft:#3a2b12;
+  --crit:#ff6b70; --crit-soft:#3a1c1e; --info:#8fb6ec; --info-soft:#1b2a3f; color-scheme:dark;
+}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
-body{background:var(--bg);color:var(--fg);font:15px/1.45 var(--font);-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--fg);font:16px/1.45 var(--font);-webkit-text-size-adjust:100%}
 [hidden]{display:none!important}
 button,input,select,textarea{font:inherit;color:inherit}
 .app{display:flex;flex-direction:column;min-height:100%}
-header.top{position:sticky;top:0;z-index:5;background:var(--accent);color:var(--accent-fg);
-  padding:calc(env(safe-area-inset-top,0px) + 10px) max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));
-  display:flex;align-items:center;gap:10px}
-header.top h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.01em;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.syncb{background:rgba(255,255,255,.16);color:inherit;border:0;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:600;display:inline-flex;gap:6px;align-items:center;cursor:pointer;white-space:nowrap}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--navy)}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--navy);color:var(--navy-ink)}
+.hrow{display:flex;align-items:center;gap:10px;padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));max-width:760px;margin:0 auto}
+.hrow .logo{height:46px;width:auto;flex:none;display:block}
+.brand{flex:1;min-width:0}
+.brand b{display:block;font:700 1.55rem/1 var(--display);text-transform:uppercase;letter-spacing:.02em;white-space:nowrap}
+.brand small{display:block;color:var(--flame);font-weight:600;font-size:.7rem;letter-spacing:.07em;text-transform:uppercase;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hright{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex:none;max-width:45%}
+.stripe{height:6px;background:repeating-linear-gradient(-45deg,var(--accent) 0 12px,var(--flame) 12px 24px)}
+.whob{background:var(--navy-2);color:var(--navy-ink);border:1px solid var(--navy-muted);border-radius:999px;padding:4px 11px;font-weight:600;font-size:.8rem;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.syncb{background:transparent;color:var(--navy-muted);border:0;padding:0;font-size:.75rem;font-weight:600;display:inline-flex;gap:6px;align-items:center;cursor:pointer;white-space:nowrap}
 .syncb i{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block}
-.syncb.ok i{background:#7ee29b}.syncb.pend i{background:#ffd27a}.syncb.err i{background:#fff;outline:2px solid #ffb4ab}
+.syncb.ok i{background:#4fc58a}.syncb.pend i{background:var(--flame)}.syncb.err i{background:#ff6b70}.syncb.err{color:#ffb4b6}
 .syncb.run i{animation:pulse 1s infinite}@keyframes pulse{50%{opacity:.3}}
 main{flex:1;padding:16px max(16px,env(safe-area-inset-right,0px)) calc(88px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));max-width:760px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:18px}
-nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--navy);border-top:3px solid var(--flame);
   display:grid;grid-template-columns:repeat(5,1fr);padding:4px max(4px,env(safe-area-inset-right,0px)) calc(4px + env(safe-area-inset-bottom,0px)) max(4px,env(safe-area-inset-left,0px))}
-nav.tabs button{background:none;border:0;padding:6px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--fg-2);border-radius:8px;cursor:pointer}
+nav.tabs button{background:none;border:0;padding:6px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;font:600 .8rem var(--display);letter-spacing:.05em;text-transform:uppercase;color:var(--navy-muted);border-radius:8px;cursor:pointer}
 nav.tabs button svg{width:24px;height:24px}
-nav.tabs button.on{color:var(--accent);font-weight:600}
-h2{font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--fg-2);margin:0 0 8px;font-weight:650}
-h3{font-size:17px;margin:0}
+nav.tabs button.on{color:var(--navy-ink)}
+nav.tabs button.on svg{color:var(--flame)}
+h2{font:700 1.05rem/1.1 var(--display);text-transform:uppercase;letter-spacing:.05em;color:var(--fg-2);margin:0 0 8px}
+h3{font:700 1.45rem/1.1 var(--display);text-transform:uppercase;letter-spacing:.02em;margin:0;text-wrap:balance}
 section{display:flex;flex-direction:column}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
 .pad{padding:14px}
@@ -71,7 +94,7 @@ div.item{cursor:default}
 .info-p{background:var(--info-soft);color:var(--info)} .crit-p{background:var(--crit-soft);color:var(--crit)}
 .muted-p{background:var(--surface-2);color:var(--fg-2)}
 .d-warn{color:var(--warn);font-weight:700} .d-crit{color:var(--crit);font-weight:700}
-.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 14px;font-weight:600;cursor:pointer;display:inline-flex;gap:6px;align-items:center;justify-content:center;min-height:44px;text-decoration:none;color:var(--fg)}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:10px 14px;font-weight:600;cursor:pointer;display:inline-flex;gap:6px;align-items:center;justify-content:center;min-height:44px;text-decoration:none;color:var(--fg)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
 .btn.danger{color:var(--crit);border-color:var(--crit-soft)}
 .btn.sm{min-height:34px;padding:6px 10px;font-size:13px}
@@ -100,7 +123,11 @@ span.chip{cursor:default}
 .fzgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 .fz{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:6px;border-left-width:4px}
 .fz.ok{border-left-color:var(--ok)} .fz.crit{border-left-color:var(--crit)} .fz.warn{border-left-color:var(--warn)} .fz.info{border-left-color:var(--info)} .fz.muted{border-left-color:var(--line)}
-.fz b{font-size:16px} .fz .bnr{font-family:var(--mono);color:var(--fg-2);font-weight:600;font-size:13px}
+.fz b{font:700 1.45rem/1 var(--display);text-transform:uppercase} .fz .bnr{font:700 1.05rem var(--display);color:var(--fg-2)}
+.fz .ruf{font-size:12px;color:var(--fg-2);margin-top:-4px}
+.hello .eyebrow{font-size:.75rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-2)}
+.hello h3{font-size:1.9rem}
+.biglogo{height:110px;width:auto;display:block;margin:0 auto}
 .fz .s{font-size:12px;font-weight:600}
 .fz .s.ok{color:var(--ok)} .fz .s.crit{color:var(--crit)} .fz .s.warn{color:var(--warn)} .fz .s.info{color:var(--info)} .fz .s.muted{color:var(--fg-2)}
 .fz .n{font-size:12px;color:var(--fg-2)}
@@ -140,7 +167,8 @@ main a{color:var(--accent)}
   @page{size:A4 landscape;margin:12mm}
 }
 #print h1{font-size:15pt;margin:0 0 2mm}
-#print .ph{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #000;padding-bottom:2mm;margin-bottom:4mm}
+#print .ph{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1b2756;padding-bottom:2mm;margin-bottom:4mm}
+#print .ph::after{content:none}
 #print table{width:100%;border-collapse:collapse;margin:2mm 0 4mm;font-size:9.5pt}
 #print th,#print td{border:1px solid #555;padding:1.2mm 1.6mm;text-align:center;vertical-align:middle}
 #print th{background:#e7e6e6}
@@ -160,9 +188,12 @@ main a{color:var(--accent)}
 <body>
 <div class="app">
   <header class="top">
-    <svg width="26" height="26" viewBox="0 0 64 64" aria-hidden="true"><use href="#ico-mask"/></svg>
-    <h1 id="title">Atemschutz-Logbuch</h1>
-    <button class="syncb" id="syncb" data-act="syncJetzt" hidden><i></i><span></span></button>
+    <div class="hrow">
+      <img class="logo" src="logo.png" alt="Wappen FF Staaken">
+      <div class="brand"><b id="title">Atemschutz</b><small id="unit"></small></div>
+      <div class="hright"><button class="whob" id="whob" data-nav="mehr" hidden></button><button class="syncb" id="syncb" data-act="syncJetzt" hidden><i></i><span></span></button></div>
+    </div>
+    <div class="stripe"></div>
   </header>
   <main id="main"></main>
   <nav class="tabs" id="tabs">
@@ -196,6 +227,7 @@ const fmtM=f=>f?`${f.slice(5,7)}/${f.slice(2,4)}`:'o. D.';
 function parseM(s){s=String(s||'').trim();if(!s)return'';const m=s.match(/^(\d{1,2})\s*[\/.\-]?\s*(\d{2}|\d{4})$/);if(!m)return null;
   const mo=+m[1];if(mo<1||mo>12)return null;const y=m[2].length===2?'20'+m[2]:m[2];return`${y}-${z(mo)}`}
 function monthEnd(f){const[y,m]=f.split('-').map(Number);return isoDate(new Date(y,m,0))}
+function relZeit(dt){const m=Math.round((Date.now()-new Date(dt))/6e4);if(m<1)return'gerade eben';if(m<60)return`vor ${m} Min.`;const h=Math.round(m/60);if(h<24)return`vor ${h} Std.`;const d=Math.round(h/24);return d===1?'gestern':d<14?`vor ${d} Tagen`:fmtD(dt)}
 const tageBis=f=>f?daysUntil(monthEnd(f)):null;
 function dueCls(f){if(!f)return'';const n=tageBis(f);return n<0?'d-crit':n<=S.vorlauf?'d-warn':''}
 function duePill(f,prefix=''){if(!f)return'';const n=tageBis(f);if(n<0)return`<span class="pill crit-p">${prefix}abgelaufen</span>`;if(n<=S.vorlauf)return`<span class="pill warn-p">${prefix}noch ${n} T</span>`;return''}
@@ -208,6 +240,7 @@ const STATUS={bereit:{l:'Einsatzbereit',c:'ok'},benutzt:{l:'Benutzt',c:'warn'},p
 const FZST={'Einsatzbereit auf Wache':'ok','Nicht Einsatzbereit':'crit','Im Einsatz':'info','In der Werkstatt':'warn'};
 const ANLASS=['Einsatz','Übung','Prüffrist','Routinetausch','Sonstiges'];
 const POOL='pool', WS='werkstatt';
+const BRAND={wehr:'Freiwillige Feuerwehr Berlin-Staaken',einheit:'FF Berlin-Staaken · Wache 3110',logo:'logo.png'};
 
 /* ================= Datenmodell & Speicher ================= */
 function baseOrte(){return[{id:POOL,name:'Pool',bnr:'',art:'lager',status:'',pos:1e12,u:0},{id:WS,name:'Atemschutzwerkstatt',bnr:'',art:'lager',status:'',pos:1e12+1,u:0}]}
@@ -296,7 +329,7 @@ function render(){
   $('#tabs').hidden=view==='login';
   const tab={tauschNeu:'tausch',inventurNeu:'inventur',ort:'fahrzeuge'}[view]||view;
   $$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.nav===tab));
-  $('#title').textContent=S.feuerwehr||'Atemschutz-Logbuch';showSync();
+  $('#unit').textContent=BRAND.einheit;const w=$('#whob'),cu=curUser();w.hidden=!cu||view==='login';if(cu)w.textContent=cu.name;showSync();
   if(view==='ort'&&!ortById(ui.ort))view='fahrzeuge';
   $('#main').innerHTML=VIEWS[view]();
   if(view==='tauschNeu')initTausch();
@@ -314,7 +347,10 @@ VIEWS.start=()=>{
   const fz=wache(), fl=faelligListe(), abg=fl.filter(x=>tageBis(x.f)<0).length;
   const defekt=aktiv().filter(g=>['benutzt','pruefung','defekt'].includes(g.status)).sort(sortG);
   const lb=S.settings.lastBackup, lbDays=lb?-daysUntil(lb.slice(0,10)):null;
+  const vn=(me()||'').split(' ')[0],lv=S.vorgaenge[0];
   return`
+  <div class="hello"><div class="eyebrow">${new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'})}</div><h3>Moin${vn?' '+esc(vn):''}!</h3>
+    ${lv?`<p class="hint" style="margin-top:4px">Letzter Tausch: <b>${esc(lv.ortName)}</b> · ${relZeit(lv.datum)}${lv.von?' · '+esc(lv.von):''}</p>`:''}</div>
   ${S.settings.beispiel?`<div class="banner info"><span class="grow">Du siehst <b>Beispieldaten</b>. Unter <b>Mehr</b> verbindest du die App mit den gemeinsamen Daten oder lädst eure Inventarliste.</span><button class="btn sm" data-nav="mehr">Zu Mehr</button></div>`:''}
   ${!verbunden()&&!S.settings.beispiel&&S.geraete.length&&(lbDays===null||lbDays>14)?`<div class="banner warn"><span class="grow">${lb?`Letzte Datensicherung vor ${lbDays} Tagen.`:'Noch keine Datensicherung erstellt.'} Die Daten liegen nur auf diesem Gerät.</span><button class="btn sm" data-act="backup">Jetzt sichern</button></div>`:''}
   ${verbunden()&&syncInfo.s==='err'?`<div class="banner warn"><span class="grow">Synchronisierung fehlgeschlagen: ${esc(syncInfo.t)} Deine Änderungen sind auf dem Handy gespeichert.</span><button class="btn sm" data-act="syncJetzt">Erneut versuchen</button></div>`:''}
@@ -327,7 +363,7 @@ VIEWS.start=()=>{
 };
 function warnCount(ort){return geraeteAn(ort).filter(g=>g.faellig&&tageBis(g.faellig)<=S.vorlauf).length+bestand(ort).filter(p=>p.faellig&&tageBis(p.faellig)<=S.vorlauf).length}
 function fzCard(o){const w=warnCount(o.id),pa=geraeteAn(o.id).filter(g=>g.kat==='PA').length;
-  return`<button class="fz ${o.art==='fahrzeug'?FZST[o.status]||'muted':'muted'}" data-act="ort" data-id="${o.id}"><span><b>${esc(o.name)}</b> <span class="bnr">${esc(o.bnr)}</span></span>
+  return`<button class="fz ${o.art==='fahrzeug'?FZST[o.status]||'muted':'muted'}" data-act="ort" data-id="${o.id}"><span><b>${esc(o.name)}</b> <span class="bnr">${esc(o.bnr)}</span></span>${o.rufname?`<span class="ruf">${esc(o.rufname)}</span>`:''}
   ${o.art==='fahrzeug'?`<span class="s ${FZST[o.status]||'muted'}">${esc(o.status||'Status offen')}</span>`:''}
   <span class="n">${pa} PA${w?` · <span class="d-warn">${w} fällig</span>`:''}</span></button>`}
 
@@ -338,7 +374,7 @@ VIEWS.fahrzeuge=()=>`<div class="row"><h3 class="grow">Fahrzeuge & Pool</h3><but
 VIEWS.ort=()=>{const o=ortById(ui.ort),gs=geraeteAn(o.id),best=bestand(o.id);
   const pa=gs.filter(g=>g.kat==='PA'),sonst=gs.filter(g=>g.kat!=='PA');
   return`<div class="row"><button class="btn sm" data-nav="fahrzeuge">‹ Zurück</button><span class="grow"></span><button class="btn sm" data-act="ortEdit" data-id="${o.id}">Bearbeiten</button></div>
-  <div><h3>${esc(o.name)} <span class="mono" style="color:var(--fg-2)">${esc(o.bnr)}</span></h3></div>
+  <div><h3>${esc(o.name)} <span style="color:var(--fg-2)">${esc(o.bnr)}</span></h3>${o.rufname?`<p class="hint" style="margin-top:2px">Funkrufname: ${esc(o.rufname)}</p>`:''}</div>
   ${o.art==='fahrzeug'?`<label class="f">Fahrzeugstatus<select id="o-status" data-id="${o.id}">${opts([['','– offen –'],...Object.keys(FZST)],o.status)}</select></label>`:''}
   <section><h2>Pressluftatmer · ${pa.length}</h2>${pa.length?`<div class="list">${pa.map(g=>devRow(g)).join('')}</div>`:`<div class="list empty">Keine Pressluftatmer.</div>`}</section>
   <section><h2>Fluchthauben, Masken, Filter</h2><div class="list">
@@ -568,7 +604,7 @@ const INV_W=[10.7,8,9,9,12,11,11,12,20,22,20,16.3];
 function invGrid(){
   const rows=[],merges=[],W=INV_COLS.length,cell=(v,s='')=>({v,s});
   const due=f=>{const c=dueCls(f);return c==='d-crit'?'c':c==='d-warn'?'w':''};
-  rows.push([cell((S.feuerwehr||'Atemschutz-Inventar')+'  ·  Stand '+fmtD(isoDate()),'t'),...Array(W-1).fill(cell('','t'))]);merges.push([0,0,0,W-1]);
+  rows.push([cell((S.feuerwehr||BRAND.wehr+' · Atemschutz-Inventar')+'  ·  Stand '+fmtD(isoDate()),'t'),...Array(W-1).fill(cell('','t'))]);merges.push([0,0,0,W-1]);
   rows.push(INV_COLS.map(h=>cell(h.replace(/­/g,''),'h')));
   const mText=p=>`${fmtM(p.faellig)}${p.n>1?` (${p.n}x)`:''}`;
   const dText=g=>[g.kat==='CO'?'':g.bez,fmtM(g.faellig),g.nr?'Nr. '+g.nr:''].filter(Boolean).join(' ');
@@ -577,7 +613,7 @@ function invGrid(){
     const cols=[gs.filter(g=>g.kat==='PA'),...MK.map(k=>best.filter(p=>p.kat===k)),gs.filter(g=>g.kat==='CO'),gs.filter(g=>g.kat==='MGM'),gs.filter(g=>g.kat==='SON')];
     const h=Math.max(1,...cols.map(c=>c.length)),r0=rows.length;
     for(let i=0;i<h;i++){const pa=cols[0][i];
-      rows.push([cell(i?'':o.name,'b'),cell(i?'':o.bnr,'b'),cell(pa?String(pa.nr):''),cell(pa?fmtM(pa.faellig):'',pa?due(pa.faellig):''),
+      rows.push([cell(i?'':o.name+(o.rufname?'\n'+o.rufname:''),'b'),cell(i?'':o.bnr,'b'),cell(pa?String(pa.nr):''),cell(pa?fmtM(pa.faellig):'',pa?due(pa.faellig):''),
         ...[1,2,3,4].map(c=>{const p=cols[c][i];return cell(p?mText(p):'',p?due(p.faellig):'')}),
         ...[5,6,7].map(c=>{const g=cols[c][i];return cell(g?dText(g):'',g?due(g.faellig):'')}),
         cell(i?'':(o.art==='fahrzeug'?o.status:''),'')])}
@@ -600,12 +636,13 @@ function zipStore(files){const enc=new TextEncoder(),parts=[],cen=[];let off=0;c
     cen.push(c,name);off+=30+name.length+data.length}
   const cs=cen.reduce((a,x)=>a+x.byteLength,0),e=new DataView(new ArrayBuffer(22));e.setUint32(0,0x06054b50,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,cs,true);e.setUint32(16,off,true);
   return new Blob([...parts,...cen,e],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}
-function xlsxInventar(){
+async function xlsxInventar(){
+  let logo=null;try{const r=await fetch(BRAND.logo);if(r.ok)logo=new Uint8Array(await r.arrayBuffer())}catch(e){}
   const{rows,merges,W}=invGrid();const xe=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const col=i=>String.fromCharCode(65+i),ST={'':1,b:2,h:3,t:4,w:5,c:6};
-  let sd='';rows.forEach((r,ri)=>{if(!r){sd+=`<row r="${ri+1}"/>`;return}sd+=`<row r="${ri+1}"${ri===0?' ht="24" customHeight="1"':''}>`;
+  let sd='';rows.forEach((r,ri)=>{if(!r){sd+=`<row r="${ri+1}"/>`;return}sd+=`<row r="${ri+1}"${ri===0?' ht="50" customHeight="1"':''}>`;
     r.forEach((c,ci)=>{const ref=col(ci)+(ri+1),s=ST[c.s]??1;sd+=c.v===''?`<c r="${ref}" s="${s}"/>`:`<c r="${ref}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${xe(c.v)}</t></is></c>`});sd+='</row>'});
-  const sheet=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><dimension ref="A1:${col(W-1)}${rows.length}"/><sheetViews><sheetView workbookViewId="0"><pane ySplit="2" topLeftCell="A3" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols>${INV_W.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('')}</cols><sheetData>${sd}</sheetData><mergeCells count="${merges.length}">${merges.map(([r1,c1,r2,c2])=>`<mergeCell ref="${col(c1)}${r1+1}:${col(c2)}${r2+1}"/>`).join('')}</mergeCells><pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/><pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/></worksheet>`;
+  const sheet=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><dimension ref="A1:${col(W-1)}${rows.length}"/><sheetViews><sheetView workbookViewId="0"><pane ySplit="2" topLeftCell="A3" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols>${INV_W.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('')}</cols><sheetData>${sd}</sheetData><mergeCells count="${merges.length}">${merges.map(([r1,c1,r2,c2])=>`<mergeCell ref="${col(c1)}${r1+1}:${col(c2)}${r2+1}"/>`).join('')}</mergeCells><pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/><pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>${logo?'<drawing r:id="rId1"/>':''}</worksheet>`;
   const al='<alignment horizontal="center" vertical="center" wrapText="1"/>';
   const styles=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="4"><font><sz val="11"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="11"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="14"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="11"/><color rgb="FF9C0006"/><name val="Calibri"/><family val="2"/></font></fonts><fills count="5"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE7E6E6"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFEB9C"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFC7CE"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color auto="1"/></left><right style="thin"><color auto="1"/></right><top style="thin"><color auto="1"/></top><bottom style="thin"><color auto="1"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="7"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1">${al}</xf><xf numFmtId="0" fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1">${al}</xf><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">${al}</xf><xf numFmtId="0" fontId="2" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1">${al}</xf><xf numFmtId="0" fontId="0" fillId="3" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1">${al}</xf><xf numFmtId="0" fontId="3" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">${al}</xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
   const files=[
@@ -614,17 +651,23 @@ function xlsxInventar(){
     {name:'xl/workbook.xml',data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Inventar" sheetId="1" r:id="rId1"/></sheets><definedNames><definedName name="_xlnm.Print_Titles" localSheetId="0">Inventar!$1:$2</definedName></definedNames></workbook>'},
     {name:'xl/_rels/workbook.xml.rels',data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'},
     {name:'xl/styles.xml',data:styles},{name:'xl/worksheets/sheet1.xml',data:sheet}];
+  if(logo){const H=46*12700,Wd=Math.round(H*197/240);
+    files[0].data=files[0].data.replace('<Default Extension="xml"','<Default Extension="png" ContentType="image/png"/><Default Extension="xml"').replace('</Types>','<Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/></Types>');
+    files.push({name:'xl/worksheets/_rels/sheet1.xml.rels',data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/></Relationships>'},
+      {name:'xl/drawings/_rels/drawing1.xml.rels',data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/logo.png"/></Relationships>'},
+      {name:'xl/drawings/drawing1.xml',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><xdr:oneCellAnchor><xdr:from><xdr:col>0</xdr:col><xdr:colOff>57150</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>25400</xdr:rowOff></xdr:from><xdr:ext cx="${Wd}" cy="${H}"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="2" name="Wappen"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${Wd}" cy="${H}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor></xdr:wsDr>`},
+      {name:'xl/media/logo.png',data:logo})}
   download(`Inventar_Atemschutz_${stamp()}.xlsx`,zipStore(files),'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
 function gridHtml(){const{rows,merges}=invGrid();const span={},skip=new Set();
   merges.forEach(([r1,c1,r2,c2])=>{span[r1+','+c1]=[r2-r1+1,c2-c1+1];for(let r=r1;r<=r2;r++)for(let c=c1;c<=c2;c++)if(r!==r1||c!==c1)skip.add(r+','+c)});
   return'<table>'+rows.slice(1).map((r,i)=>{const ri=i+1;if(!r)return'<tr><td colspan="12" style="border:0;height:2mm;padding:0"></td></tr>';
     return'<tr>'+r.map((c,ci)=>{if(skip.has(ri+','+ci))return'';const sp=span[ri+','+ci],tag=c.s==='h'?'th':'td';
-      return`<${tag}${sp?` rowspan="${sp[0]}"`:''} class="${{b:'b',w:'w',c:'c'}[c.s]||''}">${esc(c.v)}</${tag}>`}).join('')+'</tr>'}).join('')+'</table>'}
+      return`<${tag}${sp?` rowspan="${sp[0]}"`:''} class="${{b:'b',w:'w',c:'c'}[c.s]||''}">${esc(c.v).replace(/\n/g,'<br><span style="font-weight:400;font-size:8pt">')}${c.v.includes('\n')?'</span>':''}</${tag}>`}).join('')+'</tr>'}).join('')+'</table>'}
 
 /* ================= Druck / PDF ================= */
 function printDoc(title,body){
-  $('#print').innerHTML=`<div class="ph"><div><div style="font-size:9pt">${S.feuerwehr&&S.feuerwehr!==title?esc(S.feuerwehr):''}</div><h1>${esc(title)}</h1></div><div style="font-size:9pt">Stand: ${fmtDT(isoDT())}</div></div>${body}
+  $('#print').innerHTML=`<div class="ph"><div style="display:flex;gap:4mm;align-items:center"><img src="${BRAND.logo}" alt="" style="height:16mm;width:auto"><div><div style="font-size:9pt;font-weight:bold">${esc(BRAND.wehr)} · Wache 3110</div><h1>${esc(title)}</h1></div></div><div style="font-size:9pt;text-align:right">Atemschutz<br>Stand: ${fmtDT(isoDT())}</div></div>${body}
   <div class="foot">Erstellt mit Atemschutz-Logbuch · ${fmtDT(isoDT())}${me()?' · '+esc(me()):''}</div>`;
   const old=document.title;document.title=title.replace(/[^\wäöüÄÖÜß\- ]/g,'');setTimeout(()=>{window.print();document.title=old},60);
 }
@@ -645,7 +688,7 @@ function printInventur(i){const abw=(i.mengen||[]).filter(m=>m.ist!==m.soll);pri
   <h2>Vorhandene Geräte</h2>${itemTable(i.ok)}
   ${i.bemerkung?`<h2>Bemerkung</h2><p>${esc(i.bemerkung)}</p>`:''}
   <div class="sigbox"><div>${i.sig?`<img src="${i.sig}" alt="Unterschrift">`:''}${esc(i.bearbeiter)||'&nbsp;'}<br>Geprüft durch</div><div>&nbsp;<br>Gegengezeichnet</div></div>`)}
-function printInventar(){printDoc(S.feuerwehr||'Atemschutz-Inventar',gridHtml()+`<p style="font-size:8.5pt">Gelb: läuft in den nächsten ${S.vorlauf} Tagen ab · Rot: abgelaufen · Datum = gültig bis Monatsende</p>`)}
+function printInventar(){printDoc('Atemschutz-Inventar',gridHtml()+`<p style="font-size:8.5pt">Gelb: läuft in den nächsten ${S.vorlauf} Tagen ab · Rot: abgelaufen · Datum = gültig bis Monatsende</p>`)}
 function printFristen(){const r=[];
   for(const g of aktiv())if(g.ort!==WS&&g.faellig&&tageBis(g.faellig)<=92)r.push({f:g.faellig,art:KAT1[g.kat],text:devText(g),n:1,ort:ortName(g.ort)});
   for(const o of wache())for(const p of bestand(o.id))if(p.faellig&&tageBis(p.faellig)<=92)r.push({f:p.faellig,art:KAT1[p.kat],text:'',n:p.n,ort:ortName(o.id)});
@@ -733,6 +776,7 @@ function openOrt(id){const neu=!id,o=neu?{name:'',bnr:'',art:'fahrzeug',status:'
   <div class="card pad stack">
     <div class="grid2"><label class="f">Bezeichnung<input id="o-name" value="${esc(o.name)}" placeholder="z. B. LHF, TLF, LF"></label>
     <label class="f">B-Nr.<input id="o-bnr" value="${esc(o.bnr)}" inputmode="numeric" ${fix?'disabled':''}></label></div>
+    ${fix?'':`<label class="f">Funkrufname<input id="o-ruf" value="${esc(o.rufname||'')}" placeholder="optional"></label>`}
     ${fix?'':`<label class="f">Art<select id="o-art">${opts([['fahrzeug','Fahrzeug'],['lager','Lager']],o.art)}</select></label>`}
     <p class="err" id="o-err" hidden></p>
     <div class="actions"><button class="btn primary" data-act="ortOk" data-id="${id||''}">Speichern</button>${neu||fix?`<button class="btn" data-act="close">Abbrechen</button>`:`<button class="btn danger" data-act="ortLoeschen" data-id="${id}">Löschen</button>`}</div>
@@ -881,7 +925,7 @@ const isAdmin=()=>!usersOn()||curUser()?.role==='admin';
 const userHash=(id,pw)=>sha(`user:${id}:${pw}`);
 function needLogin(){return usersOn()&&!curUser()}
 VIEWS.login=()=>{const us=(S.users||[]).filter(u=>u.active!==false).sort((a,b)=>a.name.localeCompare(b.name,'de')),sel=us.find(u=>u.id===ui.loginSel);
-  return`<div style="text-align:center;padding-top:12px"><svg width="56" height="56" viewBox="0 0 64 64" style="color:var(--accent)"><use href="#ico-mask"/></svg><h3 style="margin-top:6px">Anmelden</h3><p class="hint">Wähle deinen Namen.</p></div>
+  return`<div style="text-align:center;padding-top:12px"><img class="biglogo" src="${BRAND.logo}" alt="Wappen FF Staaken"><h3 style="margin-top:10px">Anmelden</h3><p class="hint">Wähle deinen Namen.</p></div>
   ${sel?`<div class="card pad stack"><b>${esc(sel.name)}</b><label class="f">Passwort<input id="l-pw" type="password" autocomplete="current-password"></label>
     <p class="err" id="l-err" hidden></p><div class="actions"><button class="btn primary" data-act="loginOk">Anmelden</button><button class="btn" data-act="loginBack">Anderer Name</button></div></div>`
   :`<div class="list">${us.map(u=>`<button class="item" data-act="loginSel" data-id="${u.id}"><span class="main"><span class="t1">${esc(u.name)}</span><span class="t2">${ROLLEN[u.role]}</span></span></button>`).join('')}</div>`}
@@ -918,10 +962,10 @@ document.addEventListener('click',e=>{
   const A={
     close:closeSheet, geraet:()=>openGeraet(id), neuGeraet:()=>openGeraet(null,b.dataset.ort),
     ort:()=>{closeSheet();go('ort',{ort:id})}, ortNeu:()=>openOrt(null), ortEdit:()=>openOrt(id),
-    ortOk:()=>{const name=$('#o-name').value.trim(),bnr=$('#o-bnr').value.trim(),art=$('#o-art')?.value;const er=$('#o-err');
+    ortOk:()=>{const name=$('#o-name').value.trim(),bnr=$('#o-bnr').value.trim(),art=$('#o-art')?.value,rufname=($('#o-ruf')?.value||'').trim();const er=$('#o-err');
       if(!name){er.hidden=false;er.textContent='Bitte eine Bezeichnung eintragen.';return}
-      if(!id){const o={id:uid(),name,bnr,art:art||'fahrzeug',status:'Einsatzbereit auf Wache',pos:Date.now(),u:Date.now()};S.orte.push(o);save();closeSheet();go('ort',{ort:o.id});return}
-      const o=ortById(id);Object.assign(o,{name,u:Date.now()},o.id===POOL||o.id===WS?{}:{bnr,art});save();closeSheet();render()},
+      if(!id){const o={id:uid(),name,bnr,rufname,art:art||'fahrzeug',status:'Einsatzbereit auf Wache',pos:Date.now(),u:Date.now()};S.orte.push(o);save();closeSheet();go('ort',{ort:o.id});return}
+      const o=ortById(id);Object.assign(o,{name,u:Date.now()},o.id===POOL||o.id===WS?{}:{bnr,art,rufname});save();closeSheet();render()},
     ortLoeschen:()=>{const n=geraeteAn(id).length+bestand(id).length;if(n){toast('Erst Geräte und Bestand umlagern oder ausbuchen.');return}
       if(confirm(`${ortName(id)} löschen?`)){tomb(id);S.orte=S.orte.filter(o=>o.id!==id);save();closeSheet();go('fahrzeuge')}},
     buchen:()=>openBuchen(b.dataset.ort,b.dataset.kat,b.dataset.k,b.dataset.mode),

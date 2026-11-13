@@ -1,6 +1,6 @@
 // Offline-Cache für die App-Dateien. Anfragen an GitHub (Daten) werden nie zwischengespeichert.
-const CACHE = 'atemschutz-v4';
-const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'impressum.html', 'datenschutz.html', 'legal.css'];
+const CACHE = 'atemschutz-v5';
+const FILES = ['./', 'index.html', 'manifest.webmanifest', 'logo.png', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'impressum.html', 'datenschutz.html', 'legal.css', 'fonts/barlow-latin-400-normal.woff2', 'fonts/barlow-latin-500-normal.woff2', 'fonts/barlow-latin-600-normal.woff2', 'fonts/barlow-latin-700-normal.woff2', 'fonts/barlow-condensed-latin-600-normal.woff2', 'fonts/barlow-condensed-latin-700-normal.woff2'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(k => Promise.all(k.filter(n => n !== CACHE).map(n => caches.delete(n)))));
