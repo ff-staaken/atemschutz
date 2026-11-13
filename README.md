@@ -9,35 +9,49 @@ Läuft im Browser am Handy, auch offline.
 1. Die Adresse oben am Handy öffnen.
 2. iPhone (Safari): Teilen → „Zum Home-Bildschirm“ · Android (Chrome): Menü → „App installieren“.
 
-## Gemeinsame Daten einrichten (einmalig)
-Die Daten aller Gerätewarte liegen im **privaten** Repository `ff-staaken/atemschutz-daten`.
-Diese App-Seite hier ist öffentlich, die Daten nicht.
+## Einrichtung (wie bei der Kantine)
 
-### Für die Organisation (einmal)
-1. Privates Repository `atemschutz-daten` in der Organisation `ff-staaken` anlegen (darf leer sein).
-2. Unter *Organisation → Settings → Personal access tokens* erlauben, dass Fine-grained Tokens auf Repositories der Organisation zugreifen dürfen
-   (je nach Einstellung muss ein Owner jeden neuen Token freigeben).
-3. Jeden Gerätewart als Mitglied mit Schreibrecht auf `atemschutz-daten` eintragen.
+| Teil | Wo | Inhalt |
+|---|---|---|
+| Die App | öffentliches Repository `atemschutz` (GitHub Pages) | nur Programmcode, keine Daten |
+| Die Daten | **privates** Repository `atemschutz-daten` | Bestand, Tauschvorgänge, Inventuren, Benutzer, Unterschriften – **verschlüsselt** |
 
-### Für jede Person (einmal pro Handy)
-1. Auf GitHub: *Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token*.
-   - **Resource owner:** `ff-staaken`
-   - **Expiration:** z. B. 1 Jahr
-   - **Repository access:** *Only select repositories* → `atemschutz-daten`
-   - **Permissions → Repository permissions → Contents:** *Read and write*
-2. Token kopieren (beginnt mit `github_pat_`).
-3. In der App: **Mehr → Gemeinsame Daten** → Namen, Token eintragen → **Verbinden**.
+**Wer darf was?**
 
-Der Token bleibt nur auf diesem Handy gespeichert und erlaubt ausschließlich Zugriff auf das Daten-Repository.
-Geht ein Handy verloren: Token auf GitHub löschen.
+| Rolle | Darf |
+|---|---|
+| **Admin** | alles, dazu Benutzer verwalten, Einstellungen, Datei laden, Gerät trennen |
+| **Gerätewart** | Tausch, Inventur, Bestand und Geräte pflegen, Exporte |
+
+### 1. Zugangsschlüssel (einmal, durch den Admin)
+GitHub → *Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token*
+- **Resource owner:** `ff-staaken` · **Expiration:** längste Dauer (im Kalender notieren)
+- **Repository access:** *Only select repositories* → `atemschutz-daten`
+- **Permissions → Contents:** *Read and write*
+
+### 2. Erstes Gerät
+1. App öffnen → **Mehr → Gemeinsame Daten** → Zugangsschlüssel und ein **Atemschutz-Passwort** (mindestens 10 Zeichen) → **Verbinden** → Passwort wiederholen → **Gemeinsame Daten anlegen**.
+2. **Mehr → Benutzer:** dich selbst als Admin anlegen.
+3. Alle Gerätewarte mit Namen und erstem Passwort hinzufügen.
+4. Einmalig die Startdatei mit der Inventarliste über **Mehr → Datei laden** einlesen.
+
+> Das **Atemschutz-Passwort gut aufbewahren** (z. B. verschlossen bei der Wehrführung). Ohne es sind die Daten auf neuen Geräten nicht lesbar.
+
+### 3. Weitere Handys
+App öffnen → **Mehr → Gemeinsame Daten** → Zugangsschlüssel + Atemschutz-Passwort → **Verbinden**.
+Das macht der Admin oder er gibt beides an die Person weiter. Danach meldet sich jede Person mit **Namen und eigenem Passwort** an.
+Auf den Homescreen legen: iPhone *Teilen → Zum Home-Bildschirm*, Android *Menü → App installieren*.
+
+- **Passwort vergessen:** Admin → Mehr → Benutzer → „Passwort“.
+- **Person ausgeschieden:** Admin → „Deaktivieren“. Ihre Einträge bleiben mit Namen erhalten.
+- **Handy verloren:** Zugangsschlüssel auf GitHub löschen, neuen erzeugen, übrige Geräte neu verbinden.
 
 ## So funktioniert der Abgleich
-- Die Daten liegen in `inventar.json`.
+- Die Daten liegen verschlüsselt in `inventar.enc.json`, Unterschriften verschlüsselt im Ordner `unterschriften/`.
 - Jede Änderung wird sofort auf dem Handy gespeichert und nach wenigen Sekunden mit GitHub abgeglichen.
 - Ohne Netz werden Änderungen gesammelt und automatisch hochgeladen, sobald wieder Verbindung besteht.
 - Ändern zwei Personen dasselbe Gerät, gilt die neuere Änderung. Der Verlauf beider Änderungen bleibt erhalten.
 - Jede Änderung ist im Daten-Repository mit Name und Zeitpunkt nachvollziehbar (Commit-Verlauf).
-- Unterschriften liegen als Bilder im Ordner `unterschriften/`.
 
 ## Bestand übernehmen
 Die bestehende Inventarliste wird einmalig über **Mehr → Datei laden** eingelesen (Startdatei `.json`).
@@ -50,3 +64,10 @@ Die Startdatei gehört **nicht** in dieses öffentliche Repository.
 
 ## Datumsangaben
 Alle Monatsangaben (z. B. `11/26`) bedeuten: gültig bis Ende dieses Monats.
+
+## Tausch
+Was vom Fahrzeug runterkommt, geht an die Atemschutzwerkstatt bzw. ist verbraucht und wird ausgebucht (Verlauf bleibt erhalten).
+Ersatz kommt aus dem Pool. Neue Geräte von der Werkstatt im **Pool** mit „+ Gerät“, Masken/Hauben/Filter mit „+ Bestand“ anlegen.
+
+## Rechtliches
+[Impressum](impressum.html) · [Datenschutz](datenschutz.html)
