@@ -22,7 +22,6 @@ Läuft im Browser am Handy, auch offline.
 |---|---|
 | **Admin** | alles, dazu Benutzer verwalten, Einstellungen, Datei laden, Gerät trennen |
 | **Gerätewart** | Tausch, Inventur, Bestand und Geräte pflegen, Exporte |
-| *nicht angemeldet* | nur ansehen und exportieren (Excel, PDF) |
 
 ### 1. Zugangsschlüssel (einmal, durch den Admin)
 GitHub → *Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token*
@@ -43,6 +42,7 @@ App öffnen → **Mehr → Gemeinsame Daten** → Zugangsschlüssel + Atemschutz
 Das macht der Admin oder er gibt beides an die Person weiter. Danach meldet sich jede Person mit **Namen und eigenem Passwort** an.
 Auf den Homescreen legen: iPhone *Teilen → Zum Home-Bildschirm*, Android *Menü → App installieren*.
 
+- **Ohne Anmeldung** ist nur die Anmeldeseite zu sehen (sobald Benutzer angelegt sind).
 - **Automatisch abmelden:** nach 30 Minuten ohne Bedienung. Ein angefangener Tausch bleibt gespeichert.
 - **Passwort vergessen:** Admin → Mehr → Benutzer → „Passwort“.
 - **Person ausgeschieden:** Admin → „Deaktivieren“. Ihre Einträge bleiben mit Namen erhalten.
