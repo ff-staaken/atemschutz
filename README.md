@@ -3,7 +3,7 @@
 Web-App der FF Staaken für Inventur und Tausch von Pressluftatmern, Atemschutzmasken und Atemluftflaschen.
 Läuft im Browser am Handy, auch offline.
 
-**App:** https://ff-staaken.github.io/Atemschutz/
+**App:** https://ff-staaken.github.io/atemschutz/
 
 ## Aufs Handy bringen
 1. Die Adresse oben am Handy öffnen.
