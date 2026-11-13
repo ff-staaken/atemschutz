@@ -38,7 +38,11 @@ header.top{position:sticky;top:0;z-index:5;background:var(--accent);color:var(--
   padding:calc(env(safe-area-inset-top,0px) + 10px) max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));
   display:flex;align-items:center;gap:12px}
 header.top h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.01em;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-header.top .sub{font-size:12px;opacity:.85;font-weight:500}
+header.top .sub{font-size:12px;opacity:.85;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw}
+.syncb{background:rgba(255,255,255,.16);color:inherit;border:0;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:600;display:inline-flex;gap:6px;align-items:center;cursor:pointer;white-space:nowrap}
+.syncb i{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block}
+.syncb.ok i{background:#7ee29b}.syncb.pend i{background:#ffd27a}.syncb.err i{background:#fff;outline:2px solid #ffb4ab}
+.syncb.run i{animation:pulse 1s infinite}@keyframes pulse{50%{opacity:.3}}
 main{flex:1;padding:16px max(16px,env(safe-area-inset-right,0px)) calc(88px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));max-width:760px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:18px}
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);
   display:grid;grid-template-columns:repeat(5,1fr);padding:4px max(4px,env(safe-area-inset-right,0px)) calc(4px + env(safe-area-inset-bottom,0px)) max(4px,env(safe-area-inset-left,0px))}
@@ -137,6 +141,7 @@ textarea{min-height:70px;resize:vertical}
     <svg width="26" height="26" viewBox="0 0 64 64" aria-hidden="true"><use href="#ico-mask"/></svg>
     <h1 id="title">Atemschutz-Logbuch</h1>
     <span class="sub" id="subtitle"></span>
+    <button class="syncb" id="syncb" data-act="syncJetzt" hidden><i></i><span></span></button>
   </header>
   <main id="main"></main>
   <nav class="tabs" id="tabs">
@@ -144,7 +149,7 @@ textarea{min-height:70px;resize:vertical}
     <button data-nav="geraete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="2" width="8" height="20" rx="4"/><path d="M10 6h4"/></svg>Geräte</button>
     <button data-nav="tausch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h14l-4-4M20 16H6l4 4"/></svg>Tausch</button>
     <button data-nav="inventur"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 4h6v3H9zM6 5h-1v16h14V5h-1"/><path d="M9 13l2 2 4-4"/></svg>Inventur</button>
-    <button data-nav="mehr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"/></svg>Export</button>
+    <button data-nav="mehr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"/></svg>Mehr</button>
   </nav>
 </div>
 <div id="print"></div>
@@ -177,7 +182,7 @@ const ANLASS=['Einsatz','Übung','Routinetausch','Prüffrist','Sonstiges'];
 
 /* ---------- Speicher ---------- */
 function emptyState(){return{version:1,settings:{feuerwehr:'',bearbeiter:'',werkstatt:'Atemschutzwerkstatt',vorlauf:30,lastBackup:null,beispiel:false},
-  standorte:['Atemschutzwerkstatt'],geraete:[],vorgaenge:[],inventuren:[]}}
+  standorte:['Atemschutzwerkstatt'],geraete:[],vorgaenge:[],inventuren:[],geloescht:{},sharedU:0,pending:false,lastSync:null}}
 function sampleState(){
   const s=emptyState(); s.settings.beispiel=true;
   s.standorte=['Atemschutzwerkstatt','HLF 20','LF 10','DLK 23','Lager Gerätehaus'];
@@ -193,7 +198,8 @@ function sampleState(){
 let S;
 function load(){try{const raw=localStorage.getItem(KEY);S=raw?JSON.parse(raw):sampleState()}catch(e){S=sampleState()}
   S=Object.assign(emptyState(),S);S.settings=Object.assign(emptyState().settings,S.settings);}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('Speichern fehlgeschlagen – Speicher voll oder blockiert.')}}
+function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('Speichern fehlgeschlagen – Speicher voll oder blockiert.')}}
+function save(){S.pending=true;saveLocal();syncSoon()}
 load();
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
 
@@ -206,7 +212,9 @@ function fristPill(g){const w=fristState(g);if(!w)return'';if(w.n<0)return`<span
   if(w.n<=S.settings.vorlauf)return`<span class="pill warn-p">${w.l} in ${w.n} T</span>`;return''}
 const statusPill=s=>`<span class="pill ${STATUS[s].c}-p">${STATUS[s].l}</span>`;
 const sortNr=(a,b)=>a.typ.localeCompare(b.typ)||a.nr.localeCompare(b.nr,'de',{numeric:true});
-function hist(g,t){(g.historie=g.historie||[]).unshift({d:isoDT(),t})}
+function hist(g,t){(g.historie=g.historie||[]).unshift({d:isoDT(),t,n:S.settings.bearbeiter||''});if(g.historie.length>80)g.historie.length=80;g.u=Date.now()}
+const tomb=id=>{(S.geloescht=S.geloescht||{})[id]=Date.now()};
+const shared=()=>{S.sharedU=Date.now()};
 function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2400)}
 function opts(list,sel){return list.map(o=>{const[v,l]=Array.isArray(o)?o:[o,o];return`<option value="${esc(v)}"${v===sel?' selected':''}>${esc(l)}</option>`}).join('')}
 function itemRow(g,extra=''){return`<button class="item" data-act="geraet" data-id="${g.id}">
@@ -214,12 +222,100 @@ function itemRow(g,extra=''){return`<button class="item" data-act="geraet" data-
   <span class="main"><span class="t1"><span class="mono">${esc(g.nr)}</span>${statusPill(g.status)}${fristPill(g)}</span>
   <span class="t2">${esc(g.standort)}${g.modell?' · '+esc(g.hersteller+' '+g.modell):''}${g.typ==='Maske'&&g.groesse?' · Gr. '+esc(g.groesse):''}${g.typ==='Flasche'&&g.volumen?' · '+esc(g.volumen)+' l / '+esc(g.druck)+' bar':''}</span></span>${extra}</button>`}
 
+
+/* ---------- Gemeinsame Daten über GitHub ---------- */
+const CFG='atemschutz-logbuch-sync';
+function cfg(){try{return JSON.parse(localStorage.getItem(CFG))||{}}catch(e){return{}}}
+function setCfg(c){try{localStorage.setItem(CFG,JSON.stringify(c))}catch(e){}}
+const verbunden=()=>!!cfg().token;
+let syncing=false,syncTimer=null,syncInfo={s:'',t:''};
+function syncSoon(){if(!verbunden())return;clearTimeout(syncTimer);syncTimer=setTimeout(()=>sync(),2500);showSync()}
+function showSync(){const b=$('#syncb');if(!b)return;b.hidden=!verbunden();if(b.hidden)return;
+  let cls='ok',t='Synchron';
+  if(syncing){cls='run pend';t='Synchronisiere …'}
+  else if(syncInfo.s==='err'){cls='err';t='Sync-Fehler'}
+  else if(!navigator.onLine&&S.pending){cls='pend';t='Offline · Änderungen gespeichert'}
+  else if(!navigator.onLine){cls='pend';t='Offline'}
+  else if(S.pending){cls='pend';t='Nicht synchron'}
+  b.className='syncb '+cls;b.querySelector('span').textContent=t;b.title=syncInfo.t||(S.lastSync?'Zuletzt synchronisiert '+fmtDT(S.lastSync):'')}
+async function gh(path,o={}){const c=cfg();
+  const r=await fetch('https://api.github.com/repos/'+c.repo+path,{method:o.method||'GET',cache:'no-store',
+    headers:{'Authorization':'Bearer '+c.token,'Accept':o.accept||'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28',...(o.body?{'Content-Type':'application/json'}:{})},
+    body:o.body?JSON.stringify(o.body):undefined});return r}
+function b64(str){const by=new TextEncoder().encode(str);let bin='';for(let i=0;i<by.length;i+=0x8000)bin+=String.fromCharCode.apply(null,by.subarray(i,i+0x8000));return btoa(bin)}
+function ghFehler(r){return r.status===401?'Zugangsschlüssel ungültig oder abgelaufen.':r.status===403?'Keine Berechtigung. Hat der Schlüssel Lese- und Schreibrechte für das Repository?':r.status===404?'Repository nicht gefunden oder kein Zugriff.':'GitHub antwortet mit Fehler '+r.status+'.'}
+// Einheitliches Format der gemeinsamen Datei – feste Reihenfolge, damit Vergleiche stabil sind
+function payload(d){const byId=(a,b)=>a.id<b.id?-1:1;
+  return{version:2,sharedU:d.sharedU||0,feuerwehr:d.feuerwehr??d.settings?.feuerwehr??'',werkstatt:d.werkstatt??d.settings?.werkstatt??'Atemschutzwerkstatt',vorlauf:d.vorlauf??d.settings?.vorlauf??30,
+    standorte:[...(d.standorte||[])],geloescht:Object.fromEntries(Object.entries(d.geloescht||{}).sort()),
+    geraete:[...(d.geraete||[])].sort(byId),vorgaenge:[...(d.vorgaenge||[])].sort(byId),inventuren:[...(d.inventuren||[])].sort(byId)}}
+function mergeList(a,b,tombs,isGeraet){const m=new Map();
+  for(const x of [...a,...b]){const y=m.get(x.id);if(!y){m.set(x.id,x);continue}
+    const win=(x.u||0)>(y.u||0)?x:y;
+    if(isGeraet){const h=new Map();[...(x.historie||[]),...(y.historie||[])].forEach(e=>h.set(e.d+'|'+e.t,e));
+      m.set(x.id,{...win,historie:[...h.values()].sort((p,q)=>p.d<q.d?1:-1).slice(0,80)})}else m.set(x.id,win)}
+  return[...m.values()].filter(x=>!(tombs[x.id]&&tombs[x.id]>=(x.u||0)))}
+function merge(L,Rm){if(!Rm)return L;const tombs={...Rm.geloescht};for(const[k,v]of Object.entries(L.geloescht))tombs[k]=Math.max(v,tombs[k]||0);
+  const sh=(L.sharedU||0)>=(Rm.sharedU||0)?L:Rm;
+  return payload({sharedU:sh.sharedU,feuerwehr:sh.feuerwehr,werkstatt:sh.werkstatt,vorlauf:sh.vorlauf,standorte:sh.standorte,geloescht:tombs,
+    geraete:mergeList(L.geraete,Rm.geraete,tombs,true),vorgaenge:mergeList(L.vorgaenge,Rm.vorgaenge,tombs),inventuren:mergeList(L.inventuren,Rm.inventuren,tombs)})}
+function apply(p){Object.assign(S,{sharedU:p.sharedU,standorte:p.standorte,geloescht:p.geloescht,geraete:p.geraete,vorgaenge:p.vorgaenge.sort((a,b)=>a.datum<b.datum?1:-1),inventuren:p.inventuren.sort((a,b)=>a.datum<b.datum?1:-1)});
+  Object.assign(S.settings,{feuerwehr:p.feuerwehr,werkstatt:p.werkstatt,vorlauf:p.vorlauf})}
+async function pull(){
+  const l=await gh('/contents/');if(l.status===404){const e=await gh('');if(!e.ok)throw new Error(ghFehler(e));return null}
+  if(!l.ok)throw new Error(ghFehler(l));const f=(await l.json()).find(x=>x.name==='daten.json');if(!f)return null;
+  const r=await gh('/contents/daten.json',{accept:'application/vnd.github.raw+json'});if(!r.ok)throw new Error(ghFehler(r));
+  return{sha:f.sha,data:payload(JSON.parse(await r.text()))}}
+async function uploadSigs(){for(const x of [...S.vorgaenge,...S.inventuren]){if(!x.sig||!x.sig.startsWith('data:'))continue;
+  const path='unterschriften/'+x.id+'.png';
+  const r=await gh('/contents/'+path,{method:'PUT',body:{message:'Unterschrift '+x.id,content:x.sig.split(',')[1]}});
+  if(r.ok||r.status===422){sigCache[x.id]=x.sig;x.sig=path}else throw new Error(ghFehler(r))}}
+const sigCache={};
+async function sigUrl(x){if(!x.sig)return'';if(x.sig.startsWith('data:'))return x.sig;if(sigCache[x.id])return sigCache[x.id];
+  try{const r=await gh('/contents/'+x.sig);if(!r.ok)return'';const j=await r.json();return sigCache[x.id]='data:image/png;base64,'+j.content.replace(/\s/g,'')}catch(e){return''}}
+async function sync(manual){
+  if(!verbunden()||syncing)return;if(!navigator.onLine){showSync();if(manual)toast('Kein Netz – Änderungen bleiben auf dem Handy gespeichert.');return}
+  syncing=true;showSync();
+  try{
+    let ok=false;
+    for(let i=0;i<4&&!ok;i++){
+      await uploadSigs();
+      const rem=await pull();const merged=merge(payload(S),rem?.data);apply(merged);saveLocal();
+      const out=JSON.stringify(merged,null,1);
+      if(rem&&out===JSON.stringify(rem.data,null,1)){ok=true;break}
+      const r=await gh('/contents/daten.json',{method:'PUT',body:{message:`Aktualisierung von ${S.settings.bearbeiter||'unbekannt'}`,content:b64(out),...(rem?{sha:rem.sha}:{})}});
+      if(r.ok)ok=true;else if(r.status!==409&&r.status!==422)throw new Error(ghFehler(r));
+    }
+    if(!ok)throw new Error('Daten wurden gleichzeitig geändert – bitte erneut versuchen.');
+    S.pending=false;S.lastSync=isoDT();saveLocal();syncInfo={s:'ok',t:''};
+    if(manual)toast('Synchronisiert');
+    const busy=$('#ov')||['tauschNeu','inventurNeu'].includes(view)||(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
+    if(!busy)render();
+  }catch(e){syncInfo={s:'err',t:e.message};if(manual)toast(e.message)}
+  finally{syncing=false;showSync()}
+}
+async function verbinden(){
+  const repo=$('#s-repo').value.trim().replace(/^https?:\/\/github\.com\//,'').replace(/\/$/,''),token=$('#s-token').value.trim(),name=$('#s-bearbeiter').value.trim();
+  const msg=t=>{const e=$('#sync-msg');e.hidden=false;e.textContent=t};
+  if(!name){msg('Bitte zuerst deinen Namen eintragen – er steht bei jeder Änderung.');return}
+  if(!/^[\w.-]+\/[\w.-]+$/.test(repo)||!token){msg('Bitte Repository (z. B. ff-staaken/atemschutz-daten) und Zugangsschlüssel eintragen.');return}
+  S.settings.bearbeiter=name;setCfg({repo,token});msg('Verbinde …');
+  try{const r=await gh('');if(!r.ok)throw new Error(ghFehler(r));
+    if(S.settings.beispiel){const st=S.settings;S=emptyState();S.settings.bearbeiter=st.bearbeiter}
+    S.pending=true;saveLocal();await sync(true);if(syncInfo.s==='err')throw new Error(syncInfo.t);render()}
+  catch(e){setCfg({repo});msg(e.message);showSync()}
+}
+addEventListener('online',()=>sync());
+addEventListener('offline',showSync);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')sync()});
+setInterval(()=>{if(document.visibilityState==='visible')sync()},60000);
+
 /* ---------- Navigation ---------- */
 let view='start', ui={typ:'',status:'',standort:'',q:''};
 function go(v){view=v;render();window.scrollTo(0,0)}
 function render(){
   $$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.nav===view||(view==='tauschNeu'&&b.dataset.nav==='tausch')||(view==='inventurNeu'&&b.dataset.nav==='inventur')));
-  $('#subtitle').textContent=S.settings.feuerwehr||'';
+  $('#subtitle').textContent=S.settings.feuerwehr||'';showSync();
   $('#main').innerHTML=VIEWS[view]();
   if(view==='tauschNeu')initTausch();
   if(view==='inventurNeu')initInventur();
@@ -234,7 +330,8 @@ VIEWS.start=()=>{
   const lb=S.settings.lastBackup, lbDays=lb?-daysUntil(lb.slice(0,10)):null;
   return`
   ${S.settings.beispiel?`<div class="banner info"><span class="grow">Du siehst <b>Beispieldaten</b>. Schau dich um und lösche sie, wenn du mit deinen eigenen Geräten startest.</span><button class="btn sm" data-act="beispielWeg">Beispiele löschen</button></div>`:''}
-  ${!S.settings.beispiel&&S.geraete.length&&(lbDays===null||lbDays>14)?`<div class="banner warn"><span class="grow">${lb?`Letzte Datensicherung vor ${lbDays} Tagen.`:'Noch keine Datensicherung erstellt.'} Die Daten liegen nur auf diesem Gerät.</span><button class="btn sm" data-act="backup">Jetzt sichern</button></div>`:''}
+  ${!verbunden()&&!S.settings.beispiel&&S.geraete.length&&(lbDays===null||lbDays>14)?`<div class="banner warn"><span class="grow">${lb?`Letzte Datensicherung vor ${lbDays} Tagen.`:'Noch keine Datensicherung erstellt.'} Die Daten liegen nur auf diesem Gerät.</span><button class="btn sm" data-act="backup">Jetzt sichern</button></div>`:''}
+  ${verbunden()&&syncInfo.s==='err'?`<div class="banner warn"><span class="grow">Synchronisierung fehlgeschlagen: ${esc(syncInfo.t)} Deine Änderungen sind auf dem Handy gespeichert.</span><button class="btn sm" data-act="syncJetzt">Erneut versuchen</button></div>`:''}
   <div class="actions"><button class="btn primary" data-nav="tauschNeu">Neuer Tausch</button><button class="btn" data-nav="inventurNeu">Inventur starten</button></div>
   <section><h2>Bestand · ${a.length} Geräte</h2><div class="stats">
     ${['bereit','benutzt','pruefung','defekt'].map(s=>`<button class="stat ${STATUS[s].c}" data-act="filterStatus" data-s="${s}"><b>${c(s)}</b><span>${STATUS[s].l}</span></button>`).join('')}
@@ -340,8 +437,9 @@ function setupSig(canvas,initial,onchange){
 function initTausch(){updTausch();sigPad=setupSig($('#sig'),T.sig,d=>{T.sig=d;saveDraft()})}
 function tauschSpeichern(){
   if(!T.zurueck.length&&!T.ausgabe.length){toast('Bitte mindestens ein Gerät auswählen.');return}
+  T.zurueck=T.zurueck.filter(byId);T.ausgabe=T.ausgabe.filter(byId);
   const snap=id=>{const g=byId(id);return{id,nr:g.nr,typ:g.typ}};
-  const v={id:uid(),datum:T.datum,anlass:T.anlass,einsatz:T.einsatz,standort:T.standort,bearbeiter:T.bearbeiter,uebernommen:T.uebernommen,bemerkung:T.bemerkung,sig:T.sig,
+  const v={id:uid(),u:Date.now(),von:S.settings.bearbeiter,datum:T.datum,anlass:T.anlass,einsatz:T.einsatz,standort:T.standort,bearbeiter:T.bearbeiter,uebernommen:T.uebernommen,bemerkung:T.bemerkung,sig:T.sig,
     zurueck:T.zurueck.map(snap),ausgabe:T.ausgabe.map(snap),erstellt:isoDT()};
   const txt=`${T.anlass}${T.einsatz?' '+T.einsatz:''}`;
   T.zurueck.forEach(id=>{const g=byId(id);g.status='benutzt';hist(g,`Zurückgenommen von ${T.standort} (${txt}) → ${S.settings.werkstatt}`);g.standort=S.settings.werkstatt});
@@ -391,7 +489,8 @@ function initInventur(){updInv();sigPad=setupSig($('#sig'),I.sig,d=>I.sig=d)}
 function inventurSpeichern(){
   const soll=aktiv().filter(g=>g.standort===I.standort);
   const snap=g=>({id:g.id,nr:g.nr,typ:g.typ,standortVorher:g.standort});
-  const inv={id:uid(),datum:isoDT(),standort:I.standort,bearbeiter:I.bearbeiter,bemerkung:I.bemerkung,sig:I.sig,
+  I.extra=I.extra.filter(byId);
+  const inv={id:uid(),u:Date.now(),von:S.settings.bearbeiter,datum:isoDT(),standort:I.standort,bearbeiter:I.bearbeiter,bemerkung:I.bemerkung,sig:I.sig,
     vorhanden:soll.filter(g=>I.ok.includes(g.id)).map(snap),fehlend:soll.filter(g=>!I.ok.includes(g.id)).map(snap),zusaetzlich:I.extra.map(id=>snap(byId(id)))};
   inv.vorhanden.forEach(x=>hist(byId(x.id),`Inventur ${I.standort}: vorhanden`));
   inv.fehlend.forEach(x=>hist(byId(x.id),`Inventur ${I.standort}: FEHLT`));
@@ -410,6 +509,17 @@ VIEWS.mehr=()=>`
     <button class="item" data-act="pdfBestand"><span class="main"><span class="t1">Bestandsliste nach Standort</span><span class="t2">Im Druckdialog „Als PDF sichern“ wählen</span></span></button>
     <button class="item" data-act="pdfFristen"><span class="main"><span class="t1">Prüffristen-Übersicht</span><span class="t2">Alle Fristen, die nächsten 90 Tage hervorgehoben</span></span></button>
   </div><p class="hint" style="margin-top:6px">Tausch- und Inventurprotokolle druckst du direkt aus dem jeweiligen Vorgang.</p></section>
+  <section><h2>Gemeinsame Daten</h2><div class="card pad stack">
+    ${verbunden()?`<p class="hint">Verbunden mit <b class="mono">${esc(cfg().repo)}</b> als <b>${esc(S.settings.bearbeiter)}</b>. ${S.lastSync?`Zuletzt synchronisiert: <span class="mono">${fmtDT(S.lastSync)}</span>.`:''} Änderungen werden automatisch abgeglichen, auch nachträglich, wenn du offline warst.</p>
+      <div class="actions"><button class="btn primary" data-act="syncJetzt">Jetzt synchronisieren</button><button class="btn" data-act="trennen">Trennen</button></div>`
+    :`<p class="hint">Damit alle Gerätewarte mit denselben Daten arbeiten, verbinde die App mit dem privaten GitHub-Repository. Jede Person braucht dafür einen eigenen Zugangsschlüssel (Anleitung in der README).</p>
+      <label class="f">Dein Name<input id="s-bearbeiter" value="${esc(S.settings.bearbeiter)}" placeholder="Vor- und Nachname" autocomplete="name"></label>
+      <label class="f">Repository<input id="s-repo" value="${esc(cfg().repo||'ff-staaken/atemschutz-daten')}" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+      <label class="f">Zugangsschlüssel (GitHub-Token)<input id="s-token" type="password" placeholder="github_pat_…" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+      <button class="btn primary" data-act="verbinden">Verbinden</button>
+      ${S.settings.beispiel?'<p class="hint">Die Beispieldaten werden beim Verbinden entfernt und nicht hochgeladen.</p>':''}`}
+    <p class="hint" id="sync-msg" hidden></p>
+  </div></section>
   <section><h2>Datensicherung</h2><div class="card pad stack">
     <p class="hint">Die Daten liegen nur in diesem Browser. Sichere sie regelmäßig, z. B. in iCloud Drive oder Google Drive. ${S.settings.lastBackup?`Letzte Sicherung: <span class="mono">${fmtDT(S.settings.lastBackup)}</span>`:'Noch keine Sicherung.'}</p>
     <div class="actions"><button class="btn" data-act="backup">Sicherung speichern</button><label class="btn" for="restore">Sicherung laden</label></div>
@@ -417,7 +527,7 @@ VIEWS.mehr=()=>`
   </div></section>
   <section><h2>Einstellungen</h2><div class="card pad stack">
     <label class="f">Feuerwehr / Organisation (erscheint auf Protokollen)<input id="s-feuerwehr" value="${esc(S.settings.feuerwehr)}" placeholder="z. B. FF Musterstadt, Atemschutzwerkstatt"></label>
-    <label class="f">Mein Name (Vorbelegung)<input id="s-bearbeiter" value="${esc(S.settings.bearbeiter)}"></label>
+    ${verbunden()?`<label class="f">Mein Name<input id="s-bearbeiter" value="${esc(S.settings.bearbeiter)}"></label>`:''}
     <div class="grid2">
       <label class="f">Werkstatt-Standort<select id="s-werkstatt">${opts(S.standorte,S.settings.werkstatt)}</select></label>
       <label class="f">Fristen-Vorwarnung (Tage)<input id="s-vorlauf" type="number" min="1" max="365" value="${S.settings.vorlauf}"></label>
@@ -429,7 +539,7 @@ VIEWS.mehr=()=>`
   <section><h2>Daten</h2><div class="card pad stack">
     ${S.settings.beispiel?`<button class="btn" data-act="beispielWeg">Beispieldaten löschen und leer starten</button>`:`<button class="btn" data-act="beispielLaden">Beispieldaten laden (ersetzt alles)</button>`}
     <button class="btn danger" data-act="allesWeg">Alle Daten löschen</button>
-    <p class="hint">Atemschutz-Logbuch · läuft offline · Version 1.0</p>
+    <p class="hint">Atemschutz-Logbuch · läuft offline · Version 1.1</p>
   </div></section>`;
 
 function download(name,content,mime){
@@ -505,7 +615,7 @@ function openGeraet(id){
     <div class="actions"><button type="submit" class="btn primary">Speichern</button>${neu?`<button type="button" class="btn" data-act="close">Abbrechen</button>`:`<button type="button" class="btn danger" data-act="geraetLoeschen" data-id="${g.id}">Löschen</button>`}</div>
     <p class="hint" id="g-err" hidden></p>
   </form>
-  ${!neu?`<section><h2>Verlauf</h2><ul class="hist">${(g.historie||[]).slice(0,40).map(h=>`<li><span class="d">${fmtDT(h.d)}</span><span>${esc(h.t)}</span></li>`).join('')||'<li class="hint">Kein Verlauf</li>'}</ul></section>`:''}`);
+  ${!neu?`<section><h2>Verlauf</h2><ul class="hist">${(g.historie||[]).slice(0,40).map(h=>`<li><span class="d">${fmtDT(h.d)}</span><span>${esc(h.t)}${h.n?` <span class="hint">· ${esc(h.n)}</span>`:''}</span></li>`).join('')||'<li class="hint">Kein Verlauf</li>'}</ul></section>`:''}`);
   const f=$('#gform');const showTyp=()=>{$$('[data-for]',f).forEach(el=>el.hidden=el.dataset.for!==f.typ.value)};showTyp();
   f.typ.addEventListener('change',showTyp);
   f.addEventListener('submit',e=>{e.preventDefault();const d=Object.fromEntries(new FormData(f));d.nr=d.nr.trim();
@@ -548,24 +658,25 @@ document.addEventListener('click',e=>{
     ftyp:()=>{ui.typ=b.dataset.v;render()},
     erledigt:()=>{erledigt(id);render();toast('Einsatzbereit')},
     erledigtSheet:()=>{erledigt(id);closeSheet();render();toast('Einsatzbereit')},
-    geraetLoeschen:()=>{if(confirm(`Gerät ${byId(id).nr} endgültig löschen? Tipp: Status „Ausgesondert“ behält den Verlauf.`)){S.geraete=S.geraete.filter(g=>g.id!==id);save();closeSheet();render()}},
+    geraetLoeschen:()=>{if(confirm(`Gerät ${byId(id).nr} endgültig löschen? Tipp: Status „Ausgesondert“ behält den Verlauf.`)){tomb(id);S.geraete=S.geraete.filter(g=>g.id!==id);save();closeSheet();render()}},
     pick1:()=>{T.zurueck=T.zurueck.includes(id)?T.zurueck.filter(x=>x!==id):[...T.zurueck,id];updTausch()},
     pick2:()=>{T.ausgabe=T.ausgabe.includes(id)?T.ausgabe.filter(x=>x!==id):[...T.ausgabe,id];updTausch()},
     sigClear:()=>sigPad&&sigPad.clear(),
     tauschSpeichern, tauschVerwerfen:()=>{if(confirm('Diesen Tausch verwerfen?')){T=null;try{localStorage.removeItem(DRAFT)}catch(e){}go('tausch')}},
-    printVorgang:()=>printVorgang(S.vorgaenge.find(v=>v.id===id)), printInventur:()=>printInventur(S.inventuren.find(v=>v.id===id)),
-    vorgangLoeschen:()=>{if(confirm('Protokolleintrag löschen?')){S.vorgaenge=S.vorgaenge.filter(v=>v.id!==id);save();closeSheet();render()}},
-    inventurLoeschen:()=>{if(confirm('Inventur-Eintrag löschen?')){S.inventuren=S.inventuren.filter(v=>v.id!==id);save();closeSheet();render()}},
+    printVorgang:async()=>{const v=S.vorgaenge.find(v=>v.id===id);printVorgang({...v,sig:await sigUrl(v)})}, printInventur:async()=>{const i=S.inventuren.find(v=>v.id===id);printInventur({...i,sig:await sigUrl(i)})},
+    vorgangLoeschen:()=>{if(confirm('Protokolleintrag löschen?')){tomb(id);S.vorgaenge=S.vorgaenge.filter(v=>v.id!==id);save();closeSheet();render()}},
+    inventurLoeschen:()=>{if(confirm('Inventur-Eintrag löschen?')){tomb(id);S.inventuren=S.inventuren.filter(v=>v.id!==id);save();closeSheet();render()}},
     invToggle:()=>{I.ok=I.ok.includes(id)?I.ok.filter(x=>x!==id):[...I.ok,id];updInv()},
     invExtra:()=>{I.extra=I.extra.includes(id)?I.extra.filter(x=>x!==id):[...I.extra,id];updInv()},
     invAlle:()=>{I.ok=aktiv().filter(g=>g.standort===I.standort).map(g=>g.id);updInv()},
     inventurSpeichern, inventurAbbruch:()=>{I=null;go('inventur')},
     csvGeraete,csvVorgaenge,csvInventuren,backup, pdfBestand:printBestand, pdfFristen:printFristen,
-    standortNeu:()=>{const v=$('#s-neu').value.trim();if(!v)return;if(S.standorte.includes(v)){toast('Gibt es schon');return}S.standorte.push(v);save();render()},
-    standortWeg:()=>{const s=b.dataset.s;const n=S.geraete.filter(g=>g.standort===s).length;if(n){toast(`Noch ${n} Geräte auf ${s} – erst umsetzen.`);return}S.standorte=S.standorte.filter(x=>x!==s);save();render()},
+    standortNeu:()=>{const v=$('#s-neu').value.trim();if(!v)return;if(S.standorte.includes(v)){toast('Gibt es schon');return}S.standorte.push(v);shared();save();render()},
+    standortWeg:()=>{const s=b.dataset.s;const n=S.geraete.filter(g=>g.standort===s).length;if(n){toast(`Noch ${n} Geräte auf ${s} – erst umsetzen.`);return}S.standorte=S.standorte.filter(x=>x!==s);shared();save();render()},
     beispielWeg:()=>{if(confirm('Beispieldaten löschen und mit leerer App starten?')){const st=S.settings;S=emptyState();S.settings.feuerwehr=st.feuerwehr;S.settings.bearbeiter=st.bearbeiter;save();go('mehr');toast('Leg zuerst deine Standorte an, dann die Geräte.')}},
-    beispielLaden:()=>{if(confirm('Alle aktuellen Daten durch Beispieldaten ersetzen?')){S=sampleState();save();go('start')}},
-    allesWeg:()=>{if(confirm('Wirklich ALLE Daten löschen? Das kann nicht rückgängig gemacht werden.')){S=emptyState();save();go('start')}},
+    beispielLaden:()=>{if(verbunden()){toast('Nicht möglich, solange die gemeinsamen Daten verbunden sind.');return}if(confirm('Alle aktuellen Daten durch Beispieldaten ersetzen?')){S=sampleState();save();go('start')}},
+    allesWeg:()=>{if(verbunden()){toast('Erst die Verbindung trennen. Gelöscht wird dann nur dieses Handy.');return}if(confirm('Wirklich ALLE Daten auf diesem Handy löschen? Das kann nicht rückgängig gemacht werden.')){S=emptyState();saveLocal();go('start')}},
+    syncJetzt:()=>sync(true), verbinden, trennen:()=>{if(confirm('Verbindung trennen? Die Daten bleiben auf diesem Handy, werden aber nicht mehr abgeglichen.')){setCfg({repo:cfg().repo});render()}},
   };
   if(A[a]){e.preventDefault();A[a]()}
 });
@@ -581,7 +692,7 @@ document.addEventListener('change',e=>{const t=e.target;
   else if(t.id==='fstandort'){ui.standort=t.value;$('#glist').innerHTML=geraeteListe()}
   else if(t.id==='i-standort'){I.standort=t.value;I.ok=[];I.extra=[];render()}
   else if(t.id==='i-korr'){I.korrigieren=t.checked}
-  else if(t.id&&t.id.startsWith('s-')&&t.id!=='s-neu'){const k=t.id.slice(2);S.settings[k]=k==='vorlauf'?Math.max(1,+t.value||30):t.value.trim();save();$('#subtitle').textContent=S.settings.feuerwehr;toast('Gespeichert')}
+  else if(t.id&&t.id.startsWith('s-')&&t.id!=='s-neu'){const k=t.id.slice(2);if(k==='repo'||k==='token')return;S.settings[k]=k==='vorlauf'?Math.max(1,+t.value||30):t.value.trim();if(k!=='bearbeiter')shared();k==='bearbeiter'?saveLocal():save();$('#subtitle').textContent=S.settings.feuerwehr;toast('Gespeichert')}
   else if(t.id==='restore'&&t.files[0]){const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!Array.isArray(d.geraete))throw 0;
     if(confirm(`Sicherung mit ${d.geraete.length} Geräten und ${d.vorgaenge?.length||0} Tauschvorgängen laden? Aktuelle Daten werden ersetzt.`)){S=Object.assign(emptyState(),d);S.settings=Object.assign(emptyState().settings,d.settings);save();go('start');toast('Sicherung geladen')}}
     catch(x){toast('Die Datei ist keine gültige Sicherung.')}};r.readAsText(t.files[0])}
