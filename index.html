@@ -264,6 +264,7 @@ const ortById=id=>S.orte.find(o=>o.id===id);
 const ortName=id=>{const o=ortById(id);return o?o.name+(o.bnr?' '+o.bnr:''):'(gelöscht)'};
 const orteSorted=()=>[...S.orte].sort((a,b)=>(a.pos||0)-(b.pos||0)||a.name.localeCompare(b.name));
 const fahrzeuge=()=>orteSorted().filter(o=>o.art==='fahrzeug');
+const wache=()=>orteSorted().filter(o=>o.id!==WS);
 const aktiv=()=>S.geraete.filter(g=>g.status!=='ausgesondert');
 const sortG=(a,b)=>GK.indexOf(a.kat)-GK.indexOf(b.kat)||String(a.nr).localeCompare(String(b.nr),'de',{numeric:true});
 const geraeteAn=ort=>aktiv().filter(g=>g.ort===ort).sort(sortG);
@@ -304,13 +305,13 @@ const VIEWS={};
 
 /* ---------- Übersicht ---------- */
 function faelligListe(){const r=[];
-  for(const g of aktiv())if(g.faellig&&tageBis(g.faellig)<=S.vorlauf)r.push({f:g.faellig,html:devRow(g)});
-  for(const o of orteSorted())for(const p of bestand(o.id))if(p.faellig&&tageBis(p.faellig)<=S.vorlauf)
+  for(const g of aktiv())if(g.ort!==WS&&g.faellig&&tageBis(g.faellig)<=S.vorlauf)r.push({f:g.faellig,html:devRow(g)});
+  for(const o of wache())for(const p of bestand(o.id))if(p.faellig&&tageBis(p.faellig)<=S.vorlauf)
     r.push({f:p.faellig,html:`<button class="item" data-act="ort" data-id="${o.id}"><span class="typ">${KURZ[p.kat]}</span><span class="main"><span class="t1">${KAT1[p.kat]} <span class="mono ${dueCls(p.faellig)}">${fmtM(p.faellig)}</span>${p.n>1?` <span class="hint">×${p.n}</span>`:''}${duePill(p.faellig)}</span><span class="t2">${esc(ortName(o.id))}</span></span></button>`});
   return r.sort((a,b)=>a.f.localeCompare(b.f))}
 VIEWS.start=()=>{
-  const fz=fahrzeuge(), fl=faelligListe(), abg=fl.filter(x=>tageBis(x.f)<0).length;
-  const wsG=aktiv().filter(g=>g.ort===WS||['benutzt','pruefung','defekt'].includes(g.status)).sort(sortG), wsM=bestand(WS);
+  const fz=wache(), fl=faelligListe(), abg=fl.filter(x=>tageBis(x.f)<0).length;
+  const wsG=aktiv().filter(g=>g.ort===WS||['pruefung','defekt'].includes(g.status)).sort(sortG), wsM=bestand(WS);
   const lb=S.settings.lastBackup, lbDays=lb?-daysUntil(lb.slice(0,10)):null;
   return`
   ${S.settings.beispiel?`<div class="banner info"><span class="grow">Du siehst <b>Beispieldaten</b>. Unter <b>Mehr</b> verbindest du die App mit den gemeinsamen Daten oder lädst eure Inventarliste.</span><button class="btn sm" data-nav="mehr">Zu Mehr</button></div>`:''}
@@ -320,12 +321,12 @@ VIEWS.start=()=>{
   <section><h2>Fahrzeuge</h2>${fz.length?`<div class="fzgrid">${fz.map(fzCard).join('')}</div>`:`<div class="list empty">Noch keine Fahrzeuge. <button class="btn link" data-act="ortNeu">Fahrzeug anlegen</button></div>`}</section>
   <section><h2>Fälligkeiten · ${fl.length}${abg?` · ${abg} abgelaufen`:''}</h2>
     ${fl.length?`<div class="list">${fl.map(x=>x.html).join('')}</div>`:`<div class="list empty">In den nächsten ${S.vorlauf} Tagen läuft nichts ab.</div>`}</section>
-  <section><h2>Atemschutzwerkstatt</h2>
+  <section><h2>Abgegeben an die Atemschutzwerkstatt</h2>
     ${wsG.length||wsM.length?`<div class="list">${wsG.map(g=>`<div class="item"><span class="typ">${KURZ[g.kat]}</span><span class="main"><span class="t1"><span class="mono">${esc(devText(g))}</span>${statusPill(g.status)}</span><span class="t2">${esc(ortName(g.ort))} · ${g.kat==='PA'?'TÜV':'Prüfung'} ${fmtM(g.faellig)}</span></span>
-      <button class="btn sm" data-act="geprueft" data-id="${g.id}">Geprüft ✓</button></div>`).join('')}
-      ${wsM.map(p=>`<div class="item"><span class="typ">${KURZ[p.kat]}</span><span class="main"><span class="t1">${KAT1[p.kat]} <span class="mono">${fmtM(p.faellig)}</span> <span class="hint">×${p.n}</span></span><span class="t2">zur Reinigung / Prüfung</span></span>
-      <button class="btn sm" data-act="buchen" data-ort="${WS}" data-k="${p.k}" data-mode="um">Geprüft → Pool</button></div>`).join('')}</div>`
-      :`<div class="list empty">Nichts in der Werkstatt.</div>`}</section>
+      <button class="btn sm" data-act="geprueft" data-id="${g.id}">Zurück ✓</button></div>`).join('')}
+      ${wsM.map(p=>`<div class="item"><span class="typ">${KURZ[p.kat]}</span><span class="main"><span class="t1">${KAT1[p.kat]} <span class="mono">${fmtM(p.faellig)}</span> <span class="hint">×${p.n}</span></span><span class="t2">zur Reinigung / Prüfung abgegeben</span></span>
+      <button class="btn sm" data-act="buchen" data-ort="${WS}" data-k="${p.k}" data-mode="um">Zurück → Pool</button></div>`).join('')}</div>`
+      :`<div class="list empty">Nichts abgegeben.</div>`}</section>
   <section><h2>Letzte Tauschvorgänge</h2>${vorgangListe(S.vorgaenge.slice(0,4))}</section>`;
 };
 function warnCount(ort){return geraeteAn(ort).filter(g=>g.faellig&&tageBis(g.faellig)<=S.vorlauf).length+bestand(ort).filter(p=>p.faellig&&tageBis(p.faellig)<=S.vorlauf).length}
@@ -335,8 +336,8 @@ function fzCard(o){const w=warnCount(o.id),pa=geraeteAn(o.id).filter(g=>g.kat===
   <span class="n">${pa} PA${w?` · <span class="d-warn">${w} fällig</span>`:''}</span></button>`}
 
 /* ---------- Fahrzeuge & Lager ---------- */
-VIEWS.fahrzeuge=()=>`<div class="row"><h3 class="grow">Fahrzeuge & Lager</h3><button class="btn sm" data-act="ortNeu">+ Fahrzeug</button></div>
-  <div class="fzgrid">${orteSorted().map(fzCard).join('')}</div>
+VIEWS.fahrzeuge=()=>`<div class="row"><h3 class="grow">Fahrzeuge & Pool</h3><button class="btn sm" data-act="ortNeu">+ Fahrzeug</button></div>
+  <div class="fzgrid">${wache().map(fzCard).join('')}</div>
   <p class="hint">Tippe auf ein Fahrzeug, um Bestand, Prüftermine und Status zu sehen und zu ändern.</p>`;
 VIEWS.ort=()=>{const o=ortById(ui.ort),gs=geraeteAn(o.id),best=bestand(o.id);
   const pa=gs.filter(g=>g.kat==='PA'),sonst=gs.filter(g=>g.kat!=='PA');
@@ -378,11 +379,11 @@ VIEWS.tauschNeu=()=>{
     <label class="f">Einsatz-Nr. / Stichwort<input id="t-einsatz" value="${esc(T.einsatz)}" placeholder="z. B. 2026-0412 · B3 Wohnung"></label>
   </div>
   <section><h2>Vom Fahrzeug runter</h2><div class="card pad stack">
-    <p class="hint">Geräte gehen in die Atemschutzwerkstatt (Status „Benutzt“). Masken gehen zur Reinigung in die Werkstatt, Fluchthauben und Filter werden als verbraucht ausgebucht.</p>
+    <p class="hint">Geräte und Masken werden an die Atemschutzwerkstatt abgegeben, Fluchthauben und Filter als verbraucht ausgebucht.</p>
     <input type="search" id="t-q1" placeholder="PA-Nummer filtern …" value="${esc(T.q1)}" aria-label="Geräte filtern">
     <div id="pick1"></div></div></section>
   <section><h2>Aufs Fahrzeug drauf</h2><div class="card pad stack">
-    <label class="f">Ersatz kommt aus<select id="t-quelle">${ortOpts(T.quelle,o=>o.id!==T.ort)}</select></label>
+    <label class="f">Ersatz kommt aus<select id="t-quelle">${ortOpts(T.quelle,o=>o.id!==T.ort&&o.id!==WS)}</select></label>
     <input type="search" id="t-q2" placeholder="PA-Nummer filtern …" value="${esc(T.q2)}" aria-label="Ersatzgeräte filtern">
     <div id="pick2"></div></div></section>
   <section><h2>Übergabe</h2><div class="card pad stack">
@@ -458,7 +459,7 @@ VIEWS.inventurNeu=()=>{
   if(!I||!ortById(I.ort))I=newInv(fahrzeuge()[0]?.id||POOL);const o=ortById(I.ort);
   return`<div class="row"><h3 class="grow">Inventur</h3><button class="btn sm" data-act="inventurAbbruch">Abbrechen</button></div>
   <div class="card pad stack">
-    <label class="f">Fahrzeug / Lager<select id="i-ort">${ortOpts(I.ort)}</select></label>
+    <label class="f">Fahrzeug / Lager<select id="i-ort">${ortOpts(I.ort,o=>o.id!==WS)}</select></label>
     ${o.art==='fahrzeug'?`<label class="f">Fahrzeugstatus<select id="i-status">${opts([['','– offen –'],...Object.keys(FZST)],I.status)}</select></label>`:''}
   </div>
   <section><h2>Geräte</h2><div class="card pad stack">
@@ -544,7 +545,7 @@ VIEWS.mehr=()=>`
   <section><h2>Daten auf diesem Handy</h2><div class="card pad stack">
     ${S.settings.beispiel?`<button class="btn" data-act="beispielWeg">Beispieldaten löschen und leer starten</button>`:`<button class="btn" data-act="beispielLaden">Beispieldaten ansehen (ersetzt alles)</button>`}
     <button class="btn danger" data-act="allesWeg">Alle Daten löschen</button>
-    <p class="hint">Atemschutz-Logbuch · läuft offline · Version 2.0</p>
+    <p class="hint">Atemschutz-Logbuch · läuft offline · Version 2.1</p>
   </div></section>`;
 
 function download(name,content,mime){
@@ -572,7 +573,7 @@ function invGrid(){
   rows.push(INV_COLS.map(h=>cell(h.replace(/­/g,''),'h')));
   const mText=p=>`${fmtM(p.faellig)}${p.n>1?` (${p.n}x)`:''}`;
   const dText=g=>[g.kat==='CO'?'':g.bez,fmtM(g.faellig),g.nr?'Nr. '+g.nr:''].filter(Boolean).join(' ');
-  for(const o of orteSorted()){
+  for(const o of wache()){
     const gs=geraeteAn(o.id),best=bestand(o.id);if(o.art!=='fahrzeug'&&!gs.length&&!best.length)continue;
     const cols=[gs.filter(g=>g.kat==='PA'),...MK.map(k=>best.filter(p=>p.kat===k)),gs.filter(g=>g.kat==='CO'),gs.filter(g=>g.kat==='MGM'),gs.filter(g=>g.kat==='SON')];
     const h=Math.max(1,...cols.map(c=>c.length)),r0=rows.length;
@@ -647,8 +648,8 @@ function printInventur(i){const abw=(i.mengen||[]).filter(m=>m.ist!==m.soll);pri
   <div class="sigbox"><div>${i.sig?`<img src="${i.sig}" alt="Unterschrift">`:''}${esc(i.bearbeiter)||'&nbsp;'}<br>Geprüft durch</div><div>&nbsp;<br>Gegengezeichnet</div></div>`)}
 function printInventar(){printDoc(S.feuerwehr||'Atemschutz-Inventar',gridHtml()+`<p style="font-size:8.5pt">Gelb: läuft in den nächsten ${S.vorlauf} Tagen ab · Rot: abgelaufen · Datum = gültig bis Monatsende</p>`)}
 function printFristen(){const r=[];
-  for(const g of aktiv())if(g.faellig&&tageBis(g.faellig)<=92)r.push({f:g.faellig,art:KAT1[g.kat],text:devText(g),n:1,ort:ortName(g.ort)});
-  for(const o of orteSorted())for(const p of bestand(o.id))if(p.faellig&&tageBis(p.faellig)<=92)r.push({f:p.faellig,art:KAT1[p.kat],text:'',n:p.n,ort:ortName(o.id)});
+  for(const g of aktiv())if(g.ort!==WS&&g.faellig&&tageBis(g.faellig)<=92)r.push({f:g.faellig,art:KAT1[g.kat],text:devText(g),n:1,ort:ortName(g.ort)});
+  for(const o of wache())for(const p of bestand(o.id))if(p.faellig&&tageBis(p.faellig)<=92)r.push({f:p.faellig,art:KAT1[p.kat],text:'',n:p.n,ort:ortName(o.id)});
   r.sort((a,b)=>a.f.localeCompare(b.f)||a.ort.localeCompare(b.ort));
   printDoc('Fälligkeiten Atemschutz',`<table class="lt"><tr><th>Gültig bis</th><th>Tage</th><th>Art</th><th>Nummer</th><th>Anzahl</th><th>Fahrzeug / Lager</th></tr>${r.map(x=>{const n=tageBis(x.f);return`<tr><td class="${n<0?'c':n<=S.vorlauf?'w':''}">${fmtM(x.f)}</td><td>${n<0?'abgelaufen':n}</td><td>${esc(x.art)}</td><td>${esc(x.text)}</td><td>${x.n}</td><td>${esc(x.ort)}</td></tr>`}).join('')}</table>`)}
 
@@ -898,7 +899,7 @@ document.addEventListener('input',e=>{const t=e.target;
   else if(t.id==='i-bearbeiter'||t.id==='i-bemerkung'){I[t.id.slice(2)]=t.value}
 });
 document.addEventListener('change',e=>{const t=e.target;
-  if(t.id==='t-ort'){T.ort=t.value;if(T.quelle===T.ort)T.quelle=T.ort===POOL?WS:POOL;T.raus={g:[],m:{}};T.rein={g:[],m:{}};render()}
+  if(t.id==='t-ort'){T.ort=t.value;if(T.quelle===T.ort)T.quelle=wache().find(o=>o.id!==T.ort)?.id||POOL;T.raus={g:[],m:{}};T.rein={g:[],m:{}};render()}
   else if(t.id==='t-quelle'){T.quelle=t.value;T.rein={g:[],m:{}};updTausch()}
   else if(t.id==='i-ort'){I=newInv(t.value);render()}
   else if(t.id==='i-status'){I.status=t.value}
